@@ -1,0 +1,52 @@
+# VM Oracle Always Free (ARM, 12 GB). Nenhuma porta é publicada: a API sai pelo Cloudflare Tunnel.
+name: wydencoin
+services:
+  besu:
+    image: hyperledger/besu:26.9.0          # imagem multi-arquitetura (arm64)
+    restart: unless-stopped
+    environment:
+      BESU_OPTS: "-Xmx4g"                   # mínimo documentado para rede privada
+    command:
+      - --data-path=/data
+      - --genesis-file=/config/genesis.json
+      - --node-private-key-file=/config/key
+      - --rpc-http-enabled
+      - --rpc-http-host=0.0.0.0
+      - --rpc-http-api=ETH,NET,QBFT,WEB3
+      - --host-allowlist=*
+      - --min-gas-price=0
+    volumes:
+      - ./besu:/config:ro                   # genesis.json e key (vêm da configuração QBFT do introducao-ERC20)
+      - besu-data:/data
+
+  api:
+    image: ghcr.io/wydencoin/api:latest
+    restart: unless-stopped
+    env_file: .env.api
+    environment:
+      RPC_URL: http://besu:8545
+    depends_on: [besu]
+
+  indexer:
+    image: ghcr.io/wydencoin/api:latest
+    restart: unless-stopped
+    command: ["node", "dist/indexer.js"]
+    env_file: .env.api
+    environment:
+      RPC_URL: http://besu:8545
+    depends_on: [besu]
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    restart: unless-stopped
+    volumes: [grafana-data:/var/lib/grafana]
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CF_TUNNEL_TOKEN}
+    depends_on: [api]
+
+volumes:
+  besu-data:
+  grafana-data:
