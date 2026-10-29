@@ -4,7 +4,7 @@ Como o sistema roda na VM Oracle Always Free. Responsáveis: **Professor** e **C
 
 | Serviço | Imagem | Observação |
 | --- | --- | --- |
-| besu | hyperledger/besu:26.9.0 | 1 validador QBFT no piloto, RPC só na rede interna do Docker |
+| besu | hyperledger/besu:25.5.0 | 1 validador QBFT no piloto, RPC só na rede interna do Docker |
 | api / indexer | ghcr.io/wydencoin/api | mesma imagem, comandos diferentes |
 | grafana | grafana-oss | dashboard, publicado via túnel atrás do Cloudflare Access |
 | cloudflared | cloudflare/cloudflared | única saída para a internet |
