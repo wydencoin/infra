@@ -2,7 +2,7 @@
 name: wydencoin
 services:
   besu:
-    image: hyperledger/besu:26.9.0          # imagem multi-arquitetura (arm64)
+    image: hyperledger/besu:25.5.0          # imagem multi-arquitetura (arm64 e amd64)
     restart: unless-stopped
     environment:
       BESU_OPTS: "-Xmx4g"                   # mínimo documentado para rede privada
