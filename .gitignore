@@ -2,3 +2,9 @@
 besu/key
 besu/*.json
 !besu/README.md
+
+# Besu build e dados temporários locais
+besu/build/
+besu/dist/
+besu/data/
+besu/*.tar.gz

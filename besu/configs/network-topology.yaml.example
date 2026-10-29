@@ -1,0 +1,57 @@
+# ==============================================================================
+# Topologia da Rede Hyperledger Besu Multi-Node (WydenCoin)
+# ==============================================================================
+
+network:
+  name: "wydencoin-network"
+  chainId: 381660001
+  consensus: "qbft"
+  blockPeriodSeconds: 2
+  minGasPrice: 0
+
+# Definição das máquinas e nós participantes da rede (Arquitetura 4 VMs)
+# Dica: Substitua <node1-ip>, <node2-ip>, <node3-ip> e <rpc-ip> pelos IPs reais usando Ctrl+F
+nodes:
+  # VM 1: Coordenadora, Bootnode e Primeiro Validador QBFT
+  - id: "node1"
+    role: "validator"
+    bootnode: true
+    name: "Validator-1 (Bootnode)"
+    ip: "<node1-ip>"            # Substitua pelo IP real da VM 1
+    p2pPort: 30303
+    rpcHttp: false              # Validador não precisa expor RPC público
+    wsEnabled: false
+
+  # VM 2: Segundo Validador QBFT
+  - id: "node2"
+    role: "validator"
+    bootnode: false
+    name: "Validator-2"
+    ip: "<node2-ip>"            # Substitua pelo IP real da VM 2
+    p2pPort: 30303
+    rpcHttp: false
+    wsEnabled: false
+
+  # VM 3: Terceiro Validador QBFT
+  - id: "node3"
+    role: "validator"
+    bootnode: false
+    name: "Validator-3"
+    ip: "<node3-ip>"            # Substitua pelo IP real da VM 3
+    p2pPort: 30303
+    rpcHttp: false
+    wsEnabled: false
+
+  # VM 4: Nó RPC / Gateway de Integração e Aplicações Externas
+  - id: "rpcnode"
+    role: "rpc"
+    bootnode: false
+    name: "RPC-Gateway"
+    ip: "<rpc-ip>"              # Substitua pelo IP real da VM 4
+    p2pPort: 30303
+    rpcHttp: true
+    rpcHttpPort: 8545
+    wsEnabled: true
+    wsPort: 8645
+    metricsEnabled: true
+    metricsPort: 9545
