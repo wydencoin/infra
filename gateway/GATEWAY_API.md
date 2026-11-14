@@ -9,22 +9,22 @@ API Middleware / BFF (Backend For Frontend) para intermediação segura entre as
 O **RPC Gateway** isola o nó Besu do acesso público direto, fornecendo uma camada REST semântica, autenticação baseada em API Key/Token, e abstração completa das interações Web3 (ABIs, nonces, estimativas de gas e codificação `bytes32`).
 
 ```mermaid
-flowchart LR
-    subgraph Consumidores ["Consumidores"]
-        Backend["API Geral WydenCoin<br/>(Node.js / Express)"]
-        Dashboard["Dashboard Gestão<br/>(Frontend / Web)"]
+graph LR
+    subgraph Consumidores
+        Backend["API Geral WydenCoin (Node.js)"]
+        Dashboard["Dashboard Gestao (Web)"]
         Cron["Rotinas Cron / Jobs"]
     end
 
-    subgraph VM4 ["VM 4 - Gateway RPC (Phoenix)"]
-        Gateway["Wydencoin RPC Gateway<br/>Porta 8546 (Pública / Segura)<br/>[Auth: X-API-KEY]"]
-        Besu["Hyperledger Besu RPC<br/>Porta 127.0.0.1:8545<br/>(Restrito ao Localhost)"]
+    subgraph VM4["VM 4 - Gateway RPC Phoenix"]
+        Gateway["Wydencoin RPC Gateway - Porta 8546"]
+        Besu["Hyperledger Besu RPC - 127.0.0.1:8545"]
     end
 
-    Backend -->|"HTTPS / REST (com Token)"| Gateway
-    Dashboard -->|"HTTPS / REST (com Token)"| Gateway
-    Cron -->|"HTTPS / REST (com Token)"| Gateway
-    Gateway -->|"JSON-RPC Local (Loopback)"| Besu
+    Backend -->|REST com Token| Gateway
+    Dashboard -->|REST com Token| Gateway
+    Cron -->|REST com Token| Gateway
+    Gateway -->|JSON-RPC Local| Besu
 ```
 
 ### Vantagens Principais
