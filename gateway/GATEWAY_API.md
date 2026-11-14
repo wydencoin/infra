@@ -10,15 +10,15 @@ O **RPC Gateway** isola o nó Besu do acesso público direto, fornecendo uma cam
 
 ```mermaid
 flowchart LR
-    subgraph Consumidores
-        Backend["API Geral WydenCoin\n(Node.js / Express)"]
-        Dashboard["Dashboard Gestão\n(Frontend / Web)"]
+    subgraph Consumidores ["Consumidores"]
+        Backend["API Geral WydenCoin<br/>(Node.js / Express)"]
+        Dashboard["Dashboard Gestão<br/>(Frontend / Web)"]
         Cron["Rotinas Cron / Jobs"]
     end
 
-    subgraph VM 4 - Gateway RPC (Phoenix)
-        Gateway["Wydencoin RPC Gateway\nPorta 3000 (Pública / Segura)\n[Auth: X-API-KEY]"]
-        Besu["Hyperledger Besu RPC\nPorta 127.0.0.1:8545\n(Restrito ao Localhost)"]
+    subgraph VM4 ["VM 4 - Gateway RPC (Phoenix)"]
+        Gateway["Wydencoin RPC Gateway<br/>Porta 8546 (Pública / Segura)<br/>[Auth: X-API-KEY]"]
+        Besu["Hyperledger Besu RPC<br/>Porta 127.0.0.1:8545<br/>(Restrito ao Localhost)"]
     end
 
     Backend -->|"HTTPS / REST (com Token)"| Gateway
