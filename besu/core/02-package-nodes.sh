@@ -158,9 +158,10 @@ NODE_NAME=besu-${NODE_NAME}
 BESU_IMAGE=hyperledger/besu:25.5.0
 BESU_LOGGING=INFO
 P2P_PORT=${CURRENT_P2P_PORT}
-BESU_ARGS=--data-path=/opt/besu/data --genesis-file=/opt/besu/genesis.json --p2p-port=${CURRENT_P2P_PORT} --p2p-host=${BOOTNODE_IP} --min-gas-price=0 --data-storage-format=BONSAI --profile=ENTERPRISE --permissions-accounts-config-file=/opt/besu/permissions_config.toml --permissions-accounts-config-file-enabled=true --rpc-http-enabled=true --rpc-http-host=127.0.0.1 --rpc-http-port=${CURRENT_RPC_PORT} --rpc-http-api=ETH,NET,WEB3,QBFT
+BESU_ARGS=--data-path=/opt/besu/data --genesis-file=/opt/besu/genesis.json --p2p-port=${CURRENT_P2P_PORT} --p2p-host=${BOOTNODE_IP} --min-gas-price=0 --data-storage-format=BONSAI --profile=ENTERPRISE --rpc-http-enabled=true --rpc-http-host=127.0.0.1 --rpc-http-port=${CURRENT_RPC_PORT} --rpc-http-api=ETH,NET,WEB3,QBFT
 EOF
     write_helper_scripts "${NODE_PKG_DIR}" "Validador 1 (Bootnode)" "${CURRENT_RPC_PORT}"
+    tar -czf "${DIST_DIR}/node1.tar.gz" -C "${DIST_DIR}" "node1"
   else
     # Demais nós conectam ao Bootnode
     cat <<EOF > "${NODE_PKG_DIR}/.env"
@@ -168,7 +169,7 @@ NODE_NAME=besu-${NODE_NAME}
 BESU_IMAGE=hyperledger/besu:25.5.0
 BESU_LOGGING=INFO
 P2P_PORT=${CURRENT_P2P_PORT}
-BESU_ARGS=--data-path=/opt/besu/data --genesis-file=/opt/besu/genesis.json --p2p-port=${CURRENT_P2P_PORT} --bootnodes=${BOOTNODE_ENODE} --min-gas-price=0 --data-storage-format=BONSAI --profile=ENTERPRISE --permissions-accounts-config-file=/opt/besu/permissions_config.toml --permissions-accounts-config-file-enabled=true --rpc-http-enabled=true --rpc-http-host=127.0.0.1 --rpc-http-port=${CURRENT_RPC_PORT} --rpc-http-api=ETH,NET,WEB3,QBFT
+BESU_ARGS=--data-path=/opt/besu/data --genesis-file=/opt/besu/genesis.json --p2p-port=${CURRENT_P2P_PORT} --bootnodes=${BOOTNODE_ENODE} --min-gas-price=0 --data-storage-format=BONSAI --profile=ENTERPRISE --rpc-http-enabled=true --rpc-http-host=127.0.0.1 --rpc-http-port=${CURRENT_RPC_PORT} --rpc-http-api=ETH,NET,WEB3,QBFT
 EOF
     write_helper_scripts "${NODE_PKG_DIR}" "Validador ${i}" "${CURRENT_RPC_PORT}"
     
@@ -204,7 +205,7 @@ NODE_NAME=besu-rpcnode
 BESU_IMAGE=hyperledger/besu:25.5.0
 BESU_LOGGING=INFO
 P2P_PORT=${RPC_P2P_PORT}
-BESU_ARGS=--data-path=/opt/besu/data --genesis-file=/opt/besu/genesis.json --p2p-port=${RPC_P2P_PORT} --bootnodes=${BOOTNODE_ENODE} --min-gas-price=0 --data-storage-format=BONSAI --profile=ENTERPRISE --permissions-accounts-config-file=/opt/besu/permissions_config.toml --permissions-accounts-config-file-enabled=true --rpc-http-enabled=true --rpc-http-host=0.0.0.0 --rpc-http-port=${RPC_HTTP_PORT} --rpc-http-api=ETH,NET,WEB3,QBFT,DEBUG,TXPOOL --rpc-http-cors-origins="*" --rpc-ws-enabled=true --rpc-ws-host=0.0.0.0 --rpc-ws-port=${RPC_WS_PORT} --rpc-ws-api=ETH,NET,WEB3,QBFT --metrics-enabled=true --metrics-port=${RPC_METRICS_PORT}
+BESU_ARGS=--data-path=/opt/besu/data --genesis-file=/opt/besu/genesis.json --p2p-port=${RPC_P2P_PORT} --bootnodes=${BOOTNODE_ENODE} --min-gas-price=0 --data-storage-format=BONSAI --profile=ENTERPRISE --rpc-http-enabled=true --rpc-http-host=0.0.0.0 --rpc-http-port=${RPC_HTTP_PORT} --rpc-http-api=ETH,NET,WEB3,QBFT,DEBUG,TXPOOL --rpc-http-cors-origins="*" --host-allowlist="*" --rpc-ws-enabled=true --rpc-ws-host=0.0.0.0 --rpc-ws-port=${RPC_WS_PORT} --rpc-ws-api=ETH,NET,WEB3,QBFT --metrics-enabled=true --metrics-port=${RPC_METRICS_PORT}
 EOF
 
 write_helper_scripts "${RPC_PKG_DIR}" "Nó RPC / Gateway" "${RPC_HTTP_PORT}"
