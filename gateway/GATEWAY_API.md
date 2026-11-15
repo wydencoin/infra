@@ -228,7 +228,10 @@ Rotina cron acionada após o vencimento do prazo. Devolve as moedas para o aluno
 
 ## 4. Exemplo Prático de Consumo no Backend
 
-Exemplo em Node.js usando `fetch` nativo para a API Geral consumir o Gateway:
+Um cliente SDK completo, documentado e autoexecutável com todas as chamadas está disponível no arquivo:
+👉 [`gateway_client.js`](gateway_client.js) (Execute com: `node gateway_client.js`).
+
+### Exemplo Rápido (Node.js Nativo com `fetch`):
 
 ```javascript
 const GATEWAY_URL = "http://129.146.55.236:8546";
