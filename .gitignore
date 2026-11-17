@@ -1,4 +1,5 @@
 .env*
+!*.env.example
 besu/key
 besu/*.json
 !besu/README.md
