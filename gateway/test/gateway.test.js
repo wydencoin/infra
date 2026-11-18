@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const http = require("node:http");
 
 // Configura variaveis de teste apontando para o no Besu remoto
-process.env.BESU_RPC_URL = "http://129.146.55.236:8545";
+process.env.BESU_RPC_URL = "http://wydencoin-rpc.duckdns.org:8545";
 process.env.API_KEY = "test-token-123";
 process.env.PORT = "3099";
 

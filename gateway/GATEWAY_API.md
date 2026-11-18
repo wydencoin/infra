@@ -234,7 +234,7 @@ Um cliente SDK completo, documentado e autoexecutável com todas as chamadas est
 ### Exemplo Rápido (Node.js Nativo com `fetch`):
 
 ```javascript
-const GATEWAY_URL = "http://129.146.55.236:8546";
+const GATEWAY_URL = "http://wydencoin-rpc.duckdns.org:8546";
 const API_KEY = process.env.BLOCKCHAIN_GATEWAY_TOKEN || "wyden-rpc-sec-9a8f27b4e1";
 
 async function creditarRecompensa(alunoAddress, valor, motivo) {
@@ -264,7 +264,7 @@ async function creditarRecompensa(alunoAddress, valor, motivo) {
 
 ## 5. Procedimento de Deploy e Execução na VM 4
 
-O serviço roda como um container Docker integrado na VM 4 (`129.146.55.236`), conectando-se em loopback com o container do Besu.
+O serviço roda como um container Docker integrado na VM 4 (`wydencoin-rpc.duckdns.org`), conectando-se em loopback com o container do Besu.
 
 1. **Build e Start via Docker:**
    ```bash
