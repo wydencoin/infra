@@ -50,7 +50,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
           "editorMode": "code",
-          "expr": "besu_blockchain_chain_head_block_number",
+          "expr": "ethereum_blockchain_height",
           "legendFormat": "Bloco Atual",
           "range": true,
           "refId": "A"
@@ -95,7 +95,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
           "editorMode": "code",
-          "expr": "besu_peers_current",
+          "expr": "ethereum_peer_count",
           "legendFormat": "Peers",
           "range": true,
           "refId": "A"
@@ -140,7 +140,7 @@
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
           "editorMode": "code",
-          "expr": "besu_transaction_pool_transactions_count or vector(0)",
+          "expr": "besu_transaction_pool_transactions or vector(0)",
           "legendFormat": "TxPool",
           "range": true,
           "refId": "A"
@@ -222,7 +222,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "expr": "rate(besu_blockchain_chain_head_block_number[1m]) * 60",
+          "expr": "rate(ethereum_blockchain_height[1m]) * 60",
           "legendFormat": "Blocos por Minuto (Meta: 30 bpm)",
           "refId": "A"
         }
@@ -253,8 +253,8 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "expr": "sum by (action) (rate(besu_json_rpc_requests_total[1m]))",
-          "legendFormat": "RPC: {{action}}",
+          "expr": "sum by (methodName) (rate(besu_rpc_request_time_count[1m]))",
+          "legendFormat": "RPC: {{methodName}}",
           "refId": "A"
         }
       ],
@@ -291,13 +291,13 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "expr": "jvm_memory_bytes_used{area=\"heap\"}",
+          "expr": "jvm_memory_used_bytes{area=\"heap\",job=\"besu-rpc\"}",
           "legendFormat": "Heap Usado (Besu)",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "expr": "jvm_memory_bytes_max{area=\"heap\"}",
+          "expr": "jvm_memory_max_bytes{area=\"heap\",job=\"besu-rpc\"}",
           "legendFormat": "Heap Máximo Alocado",
           "refId": "B"
         }
@@ -328,7 +328,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "expr": "rate(process_cpu_seconds_total[1m]) * 100",
+          "expr": "rate(process_cpu_seconds_total{job=\"besu-rpc\"}[1m]) * 100",
           "legendFormat": "CPU Besu Process (%)",
           "refId": "A"
         }
