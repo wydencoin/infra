@@ -26,10 +26,22 @@ const BATCH_GAS_LIMIT = 3000000n;
 class BlockchainService {
   constructor() {
     this.provider = new ethers.JsonRpcProvider(config.besuRpcUrl);
-    this.adminWallet = new ethers.Wallet(config.adminPrivateKey, this.provider);
     
-    this.wc = new ethers.Contract(config.wydenCoinAddress, WYDENCOIN_ABI, this.adminWallet);
-    this.rm = new ethers.Contract(config.redemptionManagerAddress, REDEMPTION_MANAGER_ABI, this.adminWallet);
+    if (config.adminPrivateKey) {
+      this.adminWallet = new ethers.Wallet(config.adminPrivateKey, this.provider);
+      this.wc = new ethers.Contract(config.wydenCoinAddress, WYDENCOIN_ABI, this.adminWallet);
+      this.rm = new ethers.Contract(config.redemptionManagerAddress, REDEMPTION_MANAGER_ABI, this.adminWallet);
+    } else {
+      this.adminWallet = null;
+      this.wc = new ethers.Contract(config.wydenCoinAddress, WYDENCOIN_ABI, this.provider);
+      this.rm = new ethers.Contract(config.redemptionManagerAddress, REDEMPTION_MANAGER_ABI, this.provider);
+    }
+  }
+
+  _checkAdminWallet() {
+    if (!this.adminWallet) {
+      throw new Error("ADMIN_PRIVATE_KEY não configurada no servidor para assinar transações.");
+    }
   }
 
   async getHealth() {
@@ -69,6 +81,7 @@ class BlockchainService {
   }
 
   async mintReward(alunoAddress, valor, motivo) {
+    this._checkAdminWallet();
     if (!ethers.isAddress(alunoAddress)) {
       throw new Error(`Endereco de aluno invalido: ${alunoAddress}`);
     }
@@ -92,6 +105,7 @@ class BlockchainService {
   }
 
   async mintRewardBatch(itens) {
+    this._checkAdminWallet();
     if (!Array.isArray(itens) || itens.length === 0) {
       throw new Error("A lista de itens para emissao em lote nao pode ser vazia");
     }
@@ -172,6 +186,7 @@ class BlockchainService {
   }
 
   async confirmRedemption(id) {
+    this._checkAdminWallet();
     const tx = await this.rm.confirmarUso(BigInt(id), { gasLimit: TX_GAS_LIMIT });
     const receipt = await tx.wait();
     return {
@@ -183,6 +198,7 @@ class BlockchainService {
   }
 
   async cancelRedemption(id) {
+    this._checkAdminWallet();
     const tx = await this.rm.cancelar(BigInt(id), { gasLimit: TX_GAS_LIMIT });
     const receipt = await tx.wait();
     return {
@@ -194,6 +210,7 @@ class BlockchainService {
   }
 
   async expireRedemption(id) {
+    this._checkAdminWallet();
     const tx = await this.rm.expirar(BigInt(id), { gasLimit: TX_GAS_LIMIT });
     const receipt = await tx.wait();
     return {

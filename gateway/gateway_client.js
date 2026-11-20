@@ -17,7 +17,7 @@
  */
 
 const GATEWAY_URL = process.env.BLOCKCHAIN_GATEWAY_URL || "http://wydencoin-rpc.duckdns.org:8546";
-const API_KEY = process.env.BLOCKCHAIN_GATEWAY_TOKEN || "wyden-rpc-sec-9a8f27b4e1";
+const API_KEY = process.env.BLOCKCHAIN_GATEWAY_TOKEN || "";
 
 /**
  * Classe cliente que encapsula todas as operacoes do Gateway Blockchain.

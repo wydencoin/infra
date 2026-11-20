@@ -41,8 +41,8 @@ graph LR
 | :--- | :--- | :--- |
 | `PORT` | Porta HTTP exposta pelo Gateway | `8546` (ou `3000`) |
 | `BESU_RPC_URL` | Endpoint local do Besu RPC | `http://127.0.0.1:8545` |
-| `API_KEY` | Chave secreta de autenticação da API | `wyden-rpc-sec-9a8f27b4e1` |
-| `ADMIN_PRIVATE_KEY`| Chave privada detentora das roles administrativas | `0x8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63` |
+| `API_KEY` | Chave secreta de autenticação da API | `sua-chave-secreta-forte` |
+| `ADMIN_PRIVATE_KEY`| Chave privada detentora das roles administrativas | `0x_sua_chave_privada_administradora` |
 | `WYDENCOIN_ADDRESS`| Endereço do contrato ERC-20 `WydenCoin` | `0xa50a51c09a5c451C52BB714527E1974b686D8e77` |
 | `REDEMPTION_MANAGER_ADDRESS`| Endereço do contrato `RedemptionManager` | `0x9a3DBCa554e9f6b9257aAa24010DA8377C57c17e` |
 
@@ -235,7 +235,7 @@ Um cliente SDK completo, documentado e autoexecutável com todas as chamadas est
 
 ```javascript
 const GATEWAY_URL = "http://wydencoin-rpc.duckdns.org:8546";
-const API_KEY = process.env.BLOCKCHAIN_GATEWAY_TOKEN || "wyden-rpc-sec-9a8f27b4e1";
+const API_KEY = process.env.BLOCKCHAIN_GATEWAY_TOKEN || "<SUA_CHAVE_API_SECRETA>";
 
 async function creditarRecompensa(alunoAddress, valor, motivo) {
   const response = await fetch(`${GATEWAY_URL}/api/v1/recompensas/mint`, {
