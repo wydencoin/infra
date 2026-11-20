@@ -15,11 +15,13 @@ set -o pipefail
 
 DUCKDNS_DOMAIN="wydencoin-rpc"
 DUCKDNS_TOKEN="57999490-7bd9-49e6-9e08-a5fc0f216020"
+TARGET_IP="129.146.55.236"
 
 LOG_DIR="${HOME}/duckdns"
 mkdir -p "${LOG_DIR}"
 
-RESPONSE=$(curl -s -k "https://www.duckdns.org/update?domains=${DUCKDNS_DOMAIN}&token=${DUCKDNS_TOKEN}&ip=")
+# Forca o envio do IP fixo da VM 4 (evita sobrescrever com o IP da maquina local)
+RESPONSE=$(curl -s -k "https://www.duckdns.org/update?domains=${DUCKDNS_DOMAIN}&token=${DUCKDNS_TOKEN}&ip=${TARGET_IP}")
 
 echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Atualizacao DuckDNS (${DUCKDNS_DOMAIN}.duckdns.org): ${RESPONSE}" >> "${LOG_DIR}/duck.log"
 

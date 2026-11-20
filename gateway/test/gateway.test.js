@@ -64,6 +64,13 @@ describe("Wydencoin RPC Gateway Test Suite", () => {
     assert.ok(res.body.network.peers >= 1);
   });
 
+  test("GET /metrics deve expor metricas Prometheus em formato texto", async () => {
+    const res = await request("/metrics");
+    assert.equal(res.status, 200);
+    assert.match(res.body, /gateway_http_requests_total/);
+    assert.match(res.body, /gateway_process_cpu_user_seconds_total/);
+  });
+
   test("GET /api/v1/saldo/:aluno deve retornar 401 Unauthorized se token nao for enviado", async () => {
     const res = await request("/api/v1/saldo/0xfe3b557e8fb62b89f4916b721be55ceb828dbd73");
     assert.equal(res.status, 401);

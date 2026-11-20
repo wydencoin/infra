@@ -2,7 +2,9 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const config = require("./config");
+const { metricsMiddleware } = require("./middleware/metrics");
 const healthRouter = require("./routes/health");
+const metricsRouter = require("./routes/metrics");
 const apiRouter = require("./routes/api");
 
 const app = express();
@@ -10,9 +12,11 @@ const app = express();
 app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
+app.use(metricsMiddleware);
 
 // Rotas
 app.use("/health", healthRouter);
+app.use("/metrics", metricsRouter);
 app.use("/api/v1", apiRouter);
 
 // Tratamento de rotas nao encontradas
