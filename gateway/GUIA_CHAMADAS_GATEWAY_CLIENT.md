@@ -61,6 +61,10 @@ Todos os métodos retornam uma `Promise` resolvida com o objeto JSON de resposta
 | :--- | :--- | :--- |
 | `getHealth()` | — | `{ status, network, contracts, timestamp }` |
 | `getSaldo(alunoAddress)` | `string` | `{ success, aluno, saldo, unidade }` |
+| `getLotesSaldo(alunoAddress)` | `string` | `{ success, aluno, saldoValido, saldoExpiravel, lotes }` |
+| `getPoliticaExpiracao()` | — | `{ success, periodoSegundos, periodoDias, ativo }` |
+| `alterarPeriodoExpiracao(opcoes)` | `{ dias?, segundos?, directorPrivateKey? }` | `{ success, periodoSegundos, periodoDias, ativo, txHash }` |
+| `executarExpiracao(alunos)` | `string \| string[]` | `{ success, totalContasVerificadas, totalQueimado, detalhes, txHash }` |
 | `emitirRecompensa(aluno, valor, motivo)` | `string, number, string?` | `{ success, txHash, blockNumber, aluno, valor, motivo }` |
 | `emitirLoteRecompensas(itens)` | `Array<{ aluno, valor, motivo }>` | `{ success, totalItens, txHash, blockNumber }` |
 | `solicitarResgate(key, beneficioId, valor, horas)` | `string, number, number, number?` | `{ success, idResgate, beneficioId, valor, expiraEm, txHash, blockNumber }` |
@@ -134,7 +138,27 @@ await client.confirmarUsoVoucher(resgate.idResgate);
 // await client.expirarVoucher(resgate.idResgate);
 ```
 
-### 4.6. Chamada JSON-RPC Direta (`chamadaRpcBruta`)
+### 4.6. Gestão de Expiração (`getLotesSaldo`, `getPoliticaExpiracao`, `alterarPeriodoExpiracao`, `executarExpiracao`)
+
+```javascript
+// Consultar lotes ativos e datas de vencimento de um aluno
+const detalhes = await client.getLotesSaldo("0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73");
+console.log("Saldo válido:", detalhes.saldoValido, "Expirável:", detalhes.saldoExpiravel);
+console.log("Lotes ativos:", detalhes.lotes);
+
+// Consultar e alterar prazo de expiração (requer DIRECTOR_ROLE)
+const politica = await client.getPoliticaExpiracao();
+console.log("Prazo atual (dias):", politica.periodoDias);
+await client.alterarPeriodoExpiracao({ dias: 180 });
+
+// Executar queima on-chain de lotes vencidos (rotina cron)
+const purga = await client.executarExpiracao([
+  "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73"
+]);
+console.log("Total queimado:", purga.totalQueimado);
+```
+
+### 4.7. Chamada JSON-RPC Direta (`chamadaRpcBruta`)
 
 ```javascript
 const blocoHex = await client.chamadaRpcBruta("eth_blockNumber", []);

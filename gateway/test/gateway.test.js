@@ -109,4 +109,55 @@ describe("Wydencoin RPC Gateway Test Suite", () => {
     assert.equal(res.body.success, true);
     assert.ok(typeof res.body.result === "string");
   });
+
+  test("GET /api/v1/saldo/:aluno/lotes deve retornar 400 para endereco invalido", async () => {
+    const res = await request("/api/v1/saldo/endereco-invalido/lotes", {
+      headers: { "X-API-KEY": "test-token-123" }
+    });
+    assert.equal(res.status, 400);
+    assert.equal(res.body.success, false);
+  });
+
+  test("PUT /api/v1/config/expiracao deve retornar 400 quando dias/segundos nao forem informados ou negativos", async () => {
+    const resVazio = await request("/api/v1/config/expiracao", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-KEY": "test-token-123"
+      },
+      body: {}
+    });
+    assert.equal(resVazio.status, 400);
+    assert.equal(resVazio.body.success, false);
+
+    const resNegativo = await request("/api/v1/config/expiracao", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-KEY": "test-token-123"
+      },
+      body: { dias: -10 }
+    });
+    assert.equal(resNegativo.status, 400);
+    assert.equal(resNegativo.body.success, false);
+  });
+
+  test("POST /api/v1/expiracao/executar deve exigir autenticacao e validar lista de alunos", async () => {
+    const resSemAuth = await request("/api/v1/expiracao/executar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: { alunos: ["0xfe3b557e8fb62b89f4916b721be55ceb828dbd73"] }
+    });
+    assert.equal(resSemAuth.status, 401);
+
+    const resSemAdmin = await request("/api/v1/expiracao/executar", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-KEY": "test-token-123"
+      },
+      body: { alunos: [] }
+    });
+    assert.equal(resSemAdmin.body.success, false);
+  });
 });

@@ -26,7 +26,11 @@ Compatível com qualquer cliente HTTP: `curl`, Postman, Insomnia, `fetch`, Pytho
 | :--- | :--- | :---: | :--- |
 | `GET` | `/health` | Pública | Saúde da API, rede Besu e endereços dos contratos |
 | `GET` | `/metrics` | Interna | Métricas Prometheus em formato texto |
-| `GET` | `/api/v1/saldo/:aluno` | `X-API-KEY` | Consulta de saldo de WydenCoins (`WC`) |
+| `GET` | `/api/v1/saldo/:aluno` | `X-API-KEY` | Consulta de saldo válido de WydenCoins (`WC`) |
+| `GET` | `/api/v1/saldo/:aluno/lotes` | `X-API-KEY` | Consulta de lotes ativos e datas de expiração da carteira |
+| `GET` | `/api/v1/config/expiracao` | `X-API-KEY` | Consulta do prazo vigente de expiração de moedas |
+| `PUT` | `/api/v1/config/expiracao` | `X-API-KEY` | Altera o prazo de expiração para novas emissões (`DIRECTOR_ROLE`) |
+| `POST` | `/api/v1/expiracao/executar` | `X-API-KEY` | Executa queima on-chain de lotes expirados (individual ou lote) |
 | `POST` | `/api/v1/recompensas/mint` | `X-API-KEY` | Emissão de moedas para 1 aluno |
 | `POST` | `/api/v1/recompensas/mint-batch` | `X-API-KEY` | Emissão atômica em lote |
 | `POST` | `/api/v1/resgates` | `X-API-KEY` | Criação de resgate / voucher sob custódia |
@@ -403,6 +407,122 @@ curl -X POST http://wydencoin-rpc.duckdns.org:8546/api/v1/rpc \
 | Detalhes do último bloco | `{"method": "eth_getBlockByNumber", "params": ["latest", false]}` |
 | Quantidade de peers | `{"method": "net_peerCount", "params": []}` |
 | Chain ID da rede | `{"method": "eth_chainId", "params": []}` |
+
+---
+
+### 3.11. `GET /api/v1/saldo/:aluno/lotes`
+
+Retorna o saldo válido, o total expirável pendente de queima e a lista detalhada de lotes ativos da carteira ordenados pela data de expiração mais próxima (FEFO).
+
+* **Autenticação:** `X-API-KEY`.
+
+**Resposta (`200 OK`):**
+```json
+{
+  "success": true,
+  "aluno": "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73",
+  "saldoValido": 440,
+  "saldoExpiravel": 60,
+  "unidade": "WC",
+  "periodoExpiracaoSegundos": 31536000,
+  "lotes": [
+    {
+      "valor": 440,
+      "recebidoEm": 1763481600,
+      "recebidoEmIso": "2025-11-18T16:00:00.000Z",
+      "expiraEm": 1795017600,
+      "expiraEmIso": "2026-11-18T16:00:00.000Z"
+    }
+  ]
+}
+```
+
+**Exemplo cURL:**
+```bash
+curl -X GET http://wydencoin-rpc.duckdns.org:8546/api/v1/saldo/0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73/lotes \
+  -H "X-API-KEY: $API_KEY"
+```
+
+---
+
+### 3.12. `GET /api/v1/config/expiracao` e `PUT /api/v1/config/expiracao`
+
+Consulta ou altera o prazo de expiração aplicado às **novas emissões** de WydenCoin. A alteração exige assinatura por carteira detentora da role `DIRECTOR_ROLE` (por padrão a chave configurada no Gateway ou uma `directorPrivateKey` opcional enviada no payload). Informe `0` para desativar a expiração em novas emissões.
+
+* **Autenticação:** `X-API-KEY`.
+
+**Payload de Atualização (`PUT`):**
+```json
+{
+  "dias": 180
+}
+```
+*(Também aceita `"segundos": 15552000` e opcionalmente `"directorPrivateKey": "0x<CHAVE_PRIVADA_DIRETOR>"`.)*
+
+**Resposta (`200 OK`):**
+```json
+{
+  "success": true,
+  "periodoSegundos": 15552000,
+  "periodoDias": 180,
+  "ativo": true,
+  "txHash": "0xabc123...",
+  "blockNumber": 165610
+}
+```
+
+**Exemplo cURL:**
+```bash
+curl -X PUT http://wydencoin-rpc.duckdns.org:8546/api/v1/config/expiracao \
+  -H "Content-Type: application/json" \
+  -H "X-API-KEY: $API_KEY" \
+  -d '{ "dias": 180 }'
+```
+
+---
+
+### 3.13. `POST /api/v1/expiracao/executar`
+
+Executa a queima on-chain (`_burn`) dos lotes vencidos para um aluno ou lista de alunos, atualizando `totalSupply` e emitindo o evento `TokensExpirados`. Adequado para rotinas agendadas (cron).
+
+* **Autenticação:** `X-API-KEY`.
+
+**Payload de Requisição:**
+```json
+{
+  "alunos": [
+    "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73",
+    "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+  ]
+}
+```
+
+**Resposta (`200 OK`):**
+```json
+{
+  "success": true,
+  "totalContasVerificadas": 2,
+  "totalQueimado": 60,
+  "detalhes": [
+    {
+      "aluno": "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73",
+      "valorQueimado": 60
+    }
+  ],
+  "txHash": "0xdef456...",
+  "blockNumber": 165612
+}
+```
+
+**Exemplo cURL:**
+```bash
+curl -X POST http://wydencoin-rpc.duckdns.org:8546/api/v1/expiracao/executar \
+  -H "Content-Type: application/json" \
+  -H "X-API-KEY: $API_KEY" \
+  -d '{
+    "alunos": ["0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73"]
+  }'
+```
 
 ---
 

@@ -7,10 +7,50 @@ const router = express.Router();
 // Aplica autenticacao em todas as rotas sob /api/v1
 router.use(authMiddleware);
 
-// --- SALDO ---
+// --- SALDO E LOTES DE EXPIRACAO ---
 router.get("/saldo/:aluno", async (req, res, next) => {
   try {
     const data = await blockchain.getBalance(req.params.aluno);
+    return res.status(200).json({ success: true, ...data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/saldo/:aluno/lotes", async (req, res, next) => {
+  try {
+    const data = await blockchain.getStudentLots(req.params.aluno);
+    return res.status(200).json({ success: true, ...data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// --- POLITICA E EXECUCAO DE EXPIRACAO ---
+router.get("/config/expiracao", async (req, res, next) => {
+  try {
+    const data = await blockchain.getExpirationPolicy();
+    return res.status(200).json({ success: true, ...data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put("/config/expiracao", async (req, res, next) => {
+  try {
+    const { dias, segundos, directorPrivateKey } = req.body || {};
+    const data = await blockchain.setExpirationPolicy({ dias, segundos, directorPrivateKey });
+    return res.status(200).json({ success: true, ...data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/expiracao/executar", async (req, res, next) => {
+  try {
+    const { aluno, alunos } = req.body || {};
+    const lista = Array.isArray(alunos) ? alunos : (aluno ? [aluno] : []);
+    const data = await blockchain.executeExpiration(lista);
     return res.status(200).json({ success: true, ...data });
   } catch (error) {
     next(error);

@@ -59,7 +59,11 @@ cp .env.example .env
 | :--- | :--- | :---: | :--- |
 | `GET` | `/health` | Pública | Status do Gateway, rede Besu e endereços dos contratos |
 | `GET` | `/metrics` | Interna | Métricas no formato Prometheus (HTTP e runtime Node.js) |
-| `GET` | `/api/v1/saldo/:aluno` | `X-API-KEY` | Consulta de saldo em WydenCoins (`WC`) |
+| `GET` | `/api/v1/saldo/:aluno` | `X-API-KEY` | Consulta de saldo válido em WydenCoins (`WC`) |
+| `GET` | `/api/v1/saldo/:aluno/lotes` | `X-API-KEY` | Consulta de saldo válido, expirável e lotes com datas de vencimento |
+| `GET` | `/api/v1/config/expiracao` | `X-API-KEY` | Consulta do prazo vigente de expiração das moedas |
+| `PUT` | `/api/v1/config/expiracao` | `X-API-KEY` | Alteração do prazo de expiração para novas emissões (`DIRECTOR_ROLE`) |
+| `POST` | `/api/v1/expiracao/executar` | `X-API-KEY` | Queima on-chain dos lotes vencidos (individual ou lote cron) |
 | `POST` | `/api/v1/recompensas/mint` | `X-API-KEY` | Emissão individual de moedas com motivo |
 | `POST` | `/api/v1/recompensas/mint-batch` | `X-API-KEY` | Emissão atômica em lote |
 | `POST` | `/api/v1/resgates` | `X-API-KEY` | Bloqueio de saldo e emissão de voucher |
