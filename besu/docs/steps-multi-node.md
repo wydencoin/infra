@@ -1,80 +1,65 @@
-# Guia de Operação da Rede Hyperledger Besu Multi-Node (4 VMs)
+# Guia Operacional da Rede Hyperledger Besu Multi-Node (4 VMs)
 
-Este documento descreve o procedimento operacional passo a passo para inicializar e gerenciar a rede privada Hyperledger Besu (QBFT) em **4 máquinas virtuais (VMs) independentes**, inspirado no modelo do Projeto **Ilíada (RNP)**.
+Procedimento operacional para inicializar, distribuir, verificar e manter a rede privada Hyperledger Besu (QBFT) em **4 máquinas virtuais (VMs) independentes**.
 
 ---
 
-## 1. Cenário e Topologia da Rede (4 VMs)
+## 1. Topologia e Placeholders
 
-A rede é composta por 4 máquinas participantes:
+Substitua os placeholders `<node1-ip>`, `<node2-ip>`, `<node3-ip>`, `<rpc-ip>` e `<usuario>` pelos valores correspondentes ao ambiente de implantação.
 
-| Máquina | Papel na Rede | Host / IP Exemplo | Portas Expostas |
+| Máquina | Papel na Rede | Endereço | Portas Principais |
 | :--- | :--- | :--- | :--- |
-| **VM 1** | **Coordenador + Validador 1 (Bootnode)** | `<node1-ip>` | `30303` (P2P TCP/UDP), `8545` (RPC Local) |
-| **VM 2** | **Validador 2 (QBFT)** | `<node2-ip>` | `30303` (P2P TCP/UDP), `8545` (RPC Local) |
-| **VM 3** | **Validador 3 (QBFT)** | `<node3-ip>` | `30303` (P2P TCP/UDP), `8545` (RPC Local) |
-| **VM 4** | **Gateway RPC / Consultas e Aplicações Externas** | `<rpc-ip>` | `30303` (P2P), `8545` (HTTP RPC Público), `8645` (WS) |
+| **VM 1** | Coordenador + Validador 1 (Bootnode) | `<node1-ip>` | `30303` (P2P TCP/UDP), `8545` (RPC Local) |
+| **VM 2** | Validador 2 (QBFT) | `<node2-ip>` | `30303` (P2P TCP/UDP), `8545` (RPC Local) |
+| **VM 3** | Validador 3 (QBFT) | `<node3-ip>` | `30303` (P2P TCP/UDP), `8545` (RPC Local) |
+| **VM 4** | Nó RPC e Gateway | `<rpc-ip>` | `30303` (P2P), `8545` (RPC), `8645` (WS), `9545` (Metrics) |
 
-> [!TIP]
-> Substitua os placeholders `<node1-ip>`, `<node2-ip>`, `<node3-ip>`, `<rpc-ip>` e `<usuario>` pelos valores reais do seu laboratório utilizando o recurso de buscar e substituir (**Ctrl + F**).
-
-> [!NOTE]
-> Os nós validadores 1 a 3 participam do algoritmo de consenso QBFT e produzem blocos a cada 2 segundos. O nó RPC (VM 4) atua exclusivamente como gateway de API para contratos inteligentes, ferramentas de benchmark e carteiras (MetaMask), mantendo a integridade e segurança dos nós validadores.
+> Os nós validadores 1 a 3 participam do consenso QBFT e produzem blocos a cada 2 segundos. O nó RPC (VM 4) atua exclusivamente como interface de leitura e submissão de transações, isolando os validadores do tráfego de aplicações.
 
 ---
 
 ## 2. Pré-requisitos em Todas as Máquinas
 
-Em **cada uma das 4 máquinas (VM 1 a VM 4)**, é necessário ter o Docker e Docker Compose instalados:
+Em todas as 4 VMs, garanta que o Docker e o Docker Compose estejam instalados:
 
 ```bash
-# Caso o Docker não esteja instalado, utilize o utilitário fornecido:
-chmod +x ./scripts/install-docker.sh
-./scripts/install-docker.sh
+chmod +x ./besu/scripts/install-docker.sh
+./besu/scripts/install-docker.sh
 ```
 
-### Regras de Firewall (UFW / iptables)
-Certifique-se de liberar o tráfego nas portas necessárias:
-* **Em todas as máquinas (P2P)**:
+### Regras de Firewall (UFW)
+* **Em todas as máquinas (P2P):**
   ```bash
   sudo ufw allow 30303/tcp
   sudo ufw allow 30303/udp
   ```
-* **Na VM 4 (Gateway RPC)**:
+* **Na VM 4 (conforme a política de exposição adotada):**
   ```bash
-  sudo ufw allow 8545/tcp
-  sudo ufw allow 8645/tcp
+  sudo ufw allow 8546/tcp # Gateway REST autenticado
+  # Opcional (apenas se acesso direto ao Besu for necessário em rede interna):
+  # sudo ufw allow 8545/tcp
+  # sudo ufw allow 8645/tcp
   ```
 
 ---
 
-## 3. VM 1 (Coordenadora / Bootnode + Validador 1)
+## 3. Inicialização da VM 1 (Coordenadora / Bootnode)
 
-A VM 1 é responsável por gerar as chaves criptográficas de todos os nós, o arquivo de bloco gênese (`genesis.json`), as listas de permissões e empacotar as configurações prontas para as demais máquinas.
-
-### Passo 1: Navegar até o diretório da rede
-```bash
-cd rede
-```
-
-### Passo 2: Executar o Assistente de Inicialização do Coordenador
-Informe o IP público ou de rede local acessível da VM 1:
+A VM 1 gera as chaves criptográficas dos nós, o arquivo `genesis.json`, as listas de permissão e os pacotes `.tar.gz` das demais máquinas.
 
 ```bash
+cd besu
 ./deploy/setup-coordinator.sh --bootnode-ip <node1-ip>
 ```
 
-O script realizará automaticamente:
-1. Geração das 3 chaves dos validadores via contêiner oficial do Besu (`hyperledger/besu:25.5.0`).
-2. Criação do `genesis.json` com QBFT configurado (2s block time, chainId 381660001, 0 gas, 3 validadores).
-3. Construção dos pacotes de distribuição em `rede/dist/`:
-   * `dist/node1/` (inicializado localmente na VM 1).
-   * `dist/node2.tar.gz` (para VM 2).
-   * `dist/node3.tar.gz` (para VM 3).
-   * `dist/rpc-node.tar.gz` (para VM 4).
-4. Inicialização em segundo plano do Validador 1 / Bootnode.
+O script executa automaticamente:
+1. Geração das chaves dos 3 validadores usando a imagem `hyperledger/besu:25.5.0`.
+2. Criação do `genesis.json` configurado para QBFT (2s por bloco, Chain ID `381660001`, gas zerado).
+3. Empacotamento dos bundles em `besu/dist/` (`node1/`, `node2.tar.gz`, `node3.tar.gz`, `rpc-node.tar.gz`).
+4. Inicialização do container do Validador 1.
 
-### Passo 3: Verificar o status do Nó 1
+Verificação inicial na VM 1:
 ```bash
 cd dist/node1
 ./check.sh
@@ -82,96 +67,79 @@ cd dist/node1
 
 ---
 
-## 4. Distribuição dos Pacotes para as Outras Máquinas (SCP)
+## 4. Distribuição dos Pacotes via SCP
 
-Na **VM 1**, envie os arquivos compactados para cada máquina de destino via `scp`:
+A partir da VM 1, transfira os pacotes gerados para as demais máquinas:
 
 ```bash
-# Para a VM 2 (Validador 2)
 scp dist/node2.tar.gz <usuario>@<node2-ip>:~/
-
-# Para a VM 3 (Validador 3)
 scp dist/node3.tar.gz <usuario>@<node3-ip>:~/
-
-# Para a VM 4 (Gateway RPC / Consultas e Aplicações Externas)
 scp dist/rpc-node.tar.gz <usuario>@<rpc-ip>:~/
 ```
 
 ---
 
-## 5. VM 2 e VM 3 (Validadores QBFT)
+## 5. Inicialização das VMs 2 e 3 (Validadores QBFT)
 
-Repita os seguintes comandos na VM de cada validador correspondente.
-
-### No Validador 2 (VM 2):
+### VM 2 (Validador 2)
 ```bash
 tar -xzf ~/node2.tar.gz
 cd ~/node2
 ./run.sh
+./check.sh
 ```
 
-### No Validador 3 (VM 3):
+### VM 3 (Validador 3)
 ```bash
 tar -xzf ~/node3.tar.gz
 cd ~/node3
 ./run.sh
-```
-
-### Como verificar se o validador está conectado e sincronizado:
-Em qualquer um dos nós, execute:
-```bash
 ./check.sh
 ```
-Ou acompanhe os logs em tempo real:
+
+Com a maioria qualificada de validadores online, o consenso QBFT inicia automaticamente a produção contínua de blocos. Para acompanhar os logs em tempo real:
+
 ```bash
 docker compose logs -f
 ```
 
-Com 2 ou 3 validadores online (maioria qualificada QBFT), a rede iniciará a produção contínua de blocos!
-
 ---
 
-## 6. VM 4 (Gateway RPC / Consultas e Aplicações Externas)
-
-Acesse a VM 4 para colocar o nó de consulta e transações no ar:
+## 6. Inicialização da VM 4 (Nó RPC)
 
 ```bash
 tar -xzf ~/rpc-node.tar.gz
 cd ~/rpc-node
 ./run.sh
+./check.sh
 ```
 
-### Testar a conectividade RPC a partir de qualquer computador:
+### Validação JSON-RPC Local na VM 4
+
 ```bash
+# Bloco atual (retorna hexadecimal)
 curl -s -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
-  -H "Content-Type: application/json" http://<rpc-ip>:8545
-```
-Resposta esperada (bloco em hexadecimal):
-```json
-{"jsonrpc":"2.0","id":1,"result":"0x1a"}
-```
+  -H "Content-Type: application/json" http://127.0.0.1:8545
 
-Para consultar a lista de validadores ativos no bloco atual:
-```bash
+# Validadores ativos no último bloco
 curl -s -X POST --data '{"jsonrpc":"2.0","method":"qbft_getValidatorsByBlockNumber","params":["latest"],"id":1}' \
-  -H "Content-Type: application/json" http://<rpc-ip>:8545
+  -H "Content-Type: application/json" http://127.0.0.1:8545
 ```
 
 ---
 
-## 7. Comandos de Operação e Manutenção Diária
+## 7. Operação e Manutenção Diária
 
-Cada pacote gerado possui scripts padronizados:
+Cada pacote extraído contém os seguintes utilitários padronizados:
 
-| Script | Ação | Descrição |
+| Script / Comando | Ação | Descrição |
 | :--- | :--- | :--- |
-| `./run.sh` | Subir o nó | Executa `docker compose up -d` com as variáveis do `.env` |
-| `./stop.sh` | Parar o nó | Para e remove o contêiner de forma limpa (`docker compose down`) |
+| `./run.sh` | Iniciar nó | Executa `docker compose up -d` utilizando o `.env` local |
+| `./stop.sh` | Parar nó | Encerra e remove o container (`docker compose down`) |
 | `./check.sh` | Diagnóstico | Consulta `net_peerCount`, `eth_blockNumber`, sincronização e logs |
-| `docker compose logs -f` | Logs | Exibe o stream de logs do Besu em tempo real |
+| `docker compose logs -f` | Logs | Exibe a saída do processo Besu em tempo real |
 
-### Resetar a rede do zero (apenas quando necessário):
-Se for necessário recriar toda a rede:
+### Reset Completo da Rede (Ambiente de Laboratório)
 1. Em todas as máquinas, execute `./stop.sh && rm -rf data/DATABASE/`.
 2. Na VM 1, execute novamente `./deploy/setup-coordinator.sh --bootnode-ip <node1-ip>`.
-3. Reenvie os arquivos `.tar.gz` para as VMs 2, 3 e 4.
+3. Reenvie e extraia os novos pacotes `.tar.gz` nas VMs 2, 3 e 4.

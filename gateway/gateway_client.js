@@ -3,9 +3,8 @@
  * Wydencoin Blockchain Gateway - Cliente & Documentacao Executavel (Node.js)
  * ==============================================================================
  *
- * Este arquivo serve como referencia tecnica e cliente pronto para uso pelas equipes
- * de Backend (Luiz Felipe e Henrique) para integrar a API Geral do WydenCoin com a
- * blockchain Hyperledger Besu através do RPC Gateway seguro.
+ * Este arquivo fornece um cliente HTTP pronto para uso na integracao da API
+ * principal do WydenCoin com a blockchain Hyperledger Besu atraves do RPC Gateway.
  *
  * Requisitos:
  *   - Node.js v18+ (usa o fetch nativo, sem necessidade de dependencias externas).

@@ -1,19 +1,19 @@
-# 📈 WydenCoin Monitoring & Telemetry Stack (Prometheus + Grafana)
+# Stack de Monitoramento e Telemetria (Prometheus + Grafana)
 
-Stack completa de observabilidade e telemetria em tempo real para a rede blockchain **Hyperledger Besu (QBFT)** e o **RPC Gateway API**.
+Documentação da stack de observabilidade em tempo real para a rede **Hyperledger Besu (QBFT)** e para a **WydenCoin RPC Gateway API**.
 
 ---
 
-## 🏛️ 1. Arquitetura de Observabilidade
+## 1. Arquitetura de Observabilidade
 
 ```mermaid
 graph LR
-    subgraph VM4["VM 4 - RPC & Gateway (Oracle Cloud)"]
+    subgraph VM4["VM 4 - RPC e Gateway"]
         Besu["Besu RPC<br/>(:9545 /metrics)"]
         GW["Gateway API<br/>(:8546 /metrics)"]
         NodeExp["Node Exporter<br/>(:9100 /metrics)"]
         Prom["Prometheus<br/>(:9090 TSDB)"]
-        Graf["Grafana Dashboard<br/>(:3000 Web UI)"]
+        Graf["Grafana<br/>(:3000 Web UI)"]
     end
 
     subgraph Validadores["Validadores QBFT"]
@@ -23,85 +23,89 @@ graph LR
     end
 
     Besu -->|Scrape 5s| Prom
-    GW -->|Scrape 5s| Prom
-    NodeExp -->|Scrape 5s| Prom
+    GW -->|Scrape 15s| Prom
+    NodeExp -->|Scrape 15s| Prom
     V1 -.->|Opcional| Prom
     V2 -.->|Opcional| Prom
     V3 -.->|Opcional| Prom
     Prom -->|Datasource| Graf
-    User["Desenvolvedores / Professores"] -->|Acesso Web| Graf
+    Op["Operadores / Equipe Técnica"] -->|HTTP / SSH Tunnel| Graf
 ```
 
 ---
 
-## 📦 2. Componentes da Stack
+## 2. Componentes da Stack
 
-| Componente | Imagem Docker | Porta | Função |
-| :--- | :--- | :---: | :--- |
-| **Prometheus** | `prom/prometheus:v2.54.1` | `9090` (Local) | Coletor e banco temporal (*Time Series*) com retenção de 15 dias |
-| **Grafana** | `grafana/grafana-oss:11.2.0` | `3000` (Pública) | Interface visual com dashboards pré-carregados |
-| **Node Exporter** | `prom/node-exporter:v1.8.2` | `9100` (Local) | Coleta de métricas de SO (CPU, RAM, Disco e Rede da VM) |
-
----
-
-## 📊 3. Dashboards Pré-Configurados
-
-Os dashboards já vêm pré-instalados via provisionamento automático do Grafana (pasta `grafana/dashboards/`):
-
-### 1️⃣ Dashboard: `Hyperledger Besu - WydenCoin Cluster Overview`
-* **Bloco Mais Recente:** Altura do bloco on-chain em tempo real.
-* **Peers Conectados:** Quantidade de conexões ativas entre nós da rede.
-* **Fila de Transações (TxPool):** Quantidade de transações pendentes de mineração.
-* **Validadores QBFT:** Status dos nós validadores em consenso.
-* **Ritmo de Mineração (BPM):** Blocos produzidos por minuto (meta: 30 bpm / intervalo de 2s).
-* **Volume de Requisições RPC:** Taxa de chamadas JSON-RPC recebidas pelo Besu por método (`eth_blockNumber`, `eth_sendRawTransaction`, etc.).
-* **Memória JVM Heap:** Consumo de memória da JVM do Besu vs Heap máxima configurada.
-* **Uso de CPU:** Consumo percentual do processo Besu.
-
-### 2️⃣ Dashboard: `WydenCoin Gateway - API Metrics & Latency`
-* **Total de Requisições:** Contador de chamadas processadas pela API REST.
-* **Taxa de Erros 5xx:** Porcentagem de erros internos do servidor.
-* **Latência P95 Geral:** Tempo de resposta em segundos para 95% das chamadas.
-* **Vazão por Rota (Req/s):** Throughput específico de rotas como `/api/v1/saldo/:aluno`, `/api/v1/recompensas/mint` e `/api/v1/resgates`.
-* **Latência P95 por Rota:** Tempo de resposta detalhado de cada endpoint.
-* **Runtime Node.js:** Consumo de memória heap do Gateway e CPU do processo.
+| Componente | Imagem Docker | Porta | Escopo | Função |
+| :--- | :--- | :---: | :---: | :--- |
+| **Prometheus** | `prom/prometheus:v2.54.1` | `9090` | Loopback (`127.0.0.1`) | Coleta de métricas e armazenamento temporal (retenção de 15 dias) |
+| **Grafana** | `grafana/grafana-oss:11.2.0` | `3000` | Host (`0.0.0.0`) | Interface web com datasources e dashboards provisionados automaticamente |
+| **Node Exporter** | `prom/node-exporter:v1.8.2` | `9100` | Loopback (`127.0.0.1`) | Exposição de métricas do sistema operacional (CPU, memória, disco e rede) |
 
 ---
 
-## 🚀 4. Como Executar
+## 3. Dashboards Provisionados
 
-### Opção A: Executar Localmente (Teste)
+Os dashboards são carregados automaticamente na inicialização do Grafana a partir do diretório `grafana/dashboards/`:
+
+### 3.1. `Hyperledger Besu - WydenCoin Cluster Overview`
+* **Bloco Mais Recente (`ethereum_blockchain_height`):** altura atual da cadeia canônica.
+* **Peers Conectados (`ethereum_peer_count`):** número de conexões P2P ativas no nó RPC.
+* **Fila de Transações (`besu_transaction_pool_transactions`):** transações pendentes no TxPool.
+* **Validadores Ativos (QBFT):** contagem de validadores do consenso.
+* **Ritmo de Produção de Blocos:** taxa em blocos por minuto (`rate(ethereum_blockchain_height[1m]) * 60`, referência de 30 blocos/min para intervalo de 2s).
+* **Volume de Chamadas JSON-RPC:** taxa de requisições recebidas pelo Besu agrupadas por `methodName` (`besu_rpc_request_time_count`).
+* **Memória JVM Heap:** uso atual (`jvm_memory_used_bytes`) em relação ao limite configurado (`jvm_memory_max_bytes`).
+* **Uso de CPU:** consumo percentual de CPU do processo Besu (`process_cpu_seconds_total`).
+
+### 3.2. `WydenCoin Gateway - API Metrics & Latency`
+* **Total de Requisições:** contador acumulado de chamadas HTTP (`gateway_http_requests_total`).
+* **Taxa de Erros 5xx:** proporção de falhas internas do servidor.
+* **Latência P95 Geral:** percentil 95 do tempo de resposta (`gateway_http_request_duration_seconds_bucket`).
+* **Vazão por Rota:** requisições por segundo por endpoint (`/api/v1/saldo/:aluno`, `/api/v1/recompensas/mint`, `/api/v1/resgates`).
+* **Latência P95 por Rota:** tempo de resposta detalhado por endpoint.
+* **Runtime Node.js:** uso de memória heap e CPU do processo do Gateway.
+
+---
+
+## 4. Implantação e Operação
+
+Todos os comandos abaixo assumem execução a partir do diretório `monitoring/` na raiz do repositório `infra`.
+
+### Execução Local (Ambiente de Testes)
+
 ```bash
-cd /home/mikael/Documentos/Codes/infra/monitoring
+cd monitoring
 ./deploy-monitoring.sh --local
 ```
-* Acesse: `http://localhost:3000`
-* **Usuário:** `admin`
-* **Senha:** `wyden2026besu`
 
-### Opção B: Deploy na VM 4 da Oracle Cloud
+### Implantação Remota (VM 4)
+
 ```bash
-cd /home/mikael/Documentos/Codes/infra/monitoring
-./deploy-monitoring.sh --remote wydencoin-rpc.duckdns.org
+cd monitoring
+./deploy-monitoring.sh --remote <host-ou-ip-da-vm4>
 ```
-* Acesse: `http://wydencoin-rpc.duckdns.org:3000`
-* **Usuário:** `admin`
-* **Senha:** `wyden2026besu`
 
-> ⚠️ **Nota de Firewall na Oracle Cloud (OCI):**  
-> Para acessar o Grafana externamente via porta `3000`, certifique-se de que a porta `3000` TCP de entrada (Ingress Rule) está liberada na **Security List da VCN** na Oracle Cloud. Caso contrário, você pode acessá-lo via túnel SSH:
-> ```bash
-> ssh -L 3000:127.0.0.1:3000 ubuntu@wydencoin-rpc.duckdns.org
-> ```
+### Acesso ao Grafana
+
+As credenciais iniciais do Grafana são definidas nas variáveis de ambiente do serviço `grafana` em [`docker-compose.yml`](docker-compose.yml) (`GF_SECURITY_ADMIN_USER` e `GF_SECURITY_ADMIN_PASSWORD`). Em produção, recomenda-se alterar a senha no primeiro login ou sobrescrevê-la via ambiente.
+
+* **Acesso direto (requer porta `3000/TCP` liberada no firewall/Security List):**
+  `http://<host-da-vm4>:3000`
+* **Acesso via túnel SSH (recomendado sem exposição pública da porta `3000`):**
+  ```bash
+  ssh -L 3000:127.0.0.1:3000 <usuario>@<host-da-vm4>
+  ```
+  Após abrir o túnel, acesse `http://localhost:3000` no navegador.
 
 ---
 
-## 🛑 Comandos Úteis
+## 5. Comandos de Manutenção
 
 ```bash
-# Ver status dos containers
+# Verificar status dos containers
 ./deploy-monitoring.sh --status
 
-# Parar o monitoramento
+# Encerrar os containers de monitoramento
 ./deploy-monitoring.sh --stop
 ```

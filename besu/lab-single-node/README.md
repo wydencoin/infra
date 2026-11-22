@@ -1,126 +1,118 @@
-# Laboratório Hyperledger Besu QBFT: Instalação Passo a Passo em Máquina Única (lab-single-node)
+# Laboratório Hyperledger Besu QBFT: Implantação em Máquina Única (`lab-single-node`)
 
-> [!NOTE]
-> Este laboratório orienta a implantação e operação da rede privada Hyperledger Besu (QBFT) em **máquina única**, utilizando scripts modulares (`.sh`) para cada etapa do processo — seguindo o modelo operacional do projeto **Ilíada (RNP / cenarios-bevel)**. 
-> Em vez de scripts monolíticos que executam tudo de forma opaca, cada fase é acionada individualmente para oferecer controle total e visibilidade sobre a rede.
+Guia passo a passo para executar a rede privada Hyperledger Besu (QBFT) localmente em um único host utilizando scripts modulares (`.sh`), permitindo acompanhar cada etapa de inicialização da rede.
 
 ---
 
-## 1. Visão Geral da Arquitetura Local
+## 1. Arquitetura Local
 
-Para simular o comportamento de uma infraestrutura corporativa completa em um único host (computador local ou máquina virtual), executamos **4 instâncias do Hyperledger Besu**: **3 nós validadores QBFT** e **1 nó gateway RPC**, cada um com portas exclusivas na interface de loopback (`127.0.0.1`):
+Para reproduzir a topologia multi-node em uma única máquina, o laboratório sobe **4 instâncias Docker do Hyperledger Besu** (**3 validadores QBFT** e **1 nó RPC**) com portas separadas na interface local (`127.0.0.1`):
 
 | Nó | Papel no Consenso | Porta P2P | Porta JSON-RPC HTTP | Porta WebSockets |
-| :--- | :--- | :--- | :--- | :--- |
-| **`besu-node1`** | **Validador 1 / Bootnode** | `30303` | `8541` (Local) | - |
-| **`besu-node2`** | **Validador 2** | `30304` | `8542` (Local) | - |
-| **`besu-node3`** | **Validador 3** | `30305` | `8543` (Local) | - |
-| **`besu-rpcnode`** | **Gateway RPC / Membro** | `30306` | `8545` (Padrão DApps) | `8645` |
+| :--- | :--- | :---: | :---: | :---: |
+| `besu-node1` | Validador 1 / Bootnode | `30303` | `8541` | — |
+| `besu-node2` | Validador 2 | `30304` | `8542` | — |
+| `besu-node3` | Validador 3 | `30305` | `8543` | — |
+| `besu-rpcnode` | Nó RPC / Membro | `30306` | `8545` | `8645` |
 
-> [!TIP]
-> O nó `besu-rpcnode` expõe a porta padrão **8545**. Dessa forma, ferramentas como MetaMask, scripts Node.js, contratos e utilitários de teste conectam-se diretamente a `http://127.0.0.1:8545`.
+O nó `besu-rpcnode` expõe a porta padrão `8545`, permitindo conectar contratos Hardhat, clientes Web3 e o RPC Gateway em `http://127.0.0.1:8545`.
 
 ---
 
-## 2. Passo a Passo de Execução com Scripts Modulares
+## 2. Execução Passo a Passo
 
-Navegue até a pasta do laboratório:
+A partir da raiz do repositório `infra`, acesse o diretório do laboratório:
+
 ```bash
-cd rede/lab-single-node
+cd besu/lab-single-node
 ```
 
-### Etapa 1: Instalação e Validação dos Pré-requisitos
-Execute o script de verificação do Docker e Docker Compose:
+### Etapa 1: Validação de Pré-requisitos
+
 ```bash
 ./01-install-requirements.sh
 ```
-*O script valida a existência do daemon do Docker e permissões do usuário atual.*
 
----
+Verifica a disponibilidade do daemon Docker, do plugin Docker Compose e das permissões do usuário atual.
 
 ### Etapa 2: Geração Criptográfica e Bloco Gênese QBFT
-Gere as chaves dos 3 validadores, o bloco gênese com tempo de bloco de 2 segundos e os pacotes locais:
+
 ```bash
 ./02-generate-network.sh
 ```
-* **O que este script executa:**
-  1. Chama o gerador nativo do Hyperledger Besu (`operator generate-blockchain-config`) configurando 3 validadores e o Chain ID `381660001`.
-  2. Extrai o identificador Enode do Nó 1 (`enode://...127.0.0.1:30303`).
-  3. Gera o arquivo de allowlist `permissions_config.toml` contendo a conta deployer e as chaves dos validadores.
-  4. Estrutura os diretórios em `dist/node1`, `dist/node2`, `dist/node3` e `dist/rpc-node` com portas separadas.
 
----
+Este script executa:
+1. Geração das chaves dos 3 validadores (`operator generate-blockchain-config`) com Chain ID `381660001` e intervalo de bloco de 2s.
+2. Extração do Enode do Nó 1 (`enode://...127.0.0.1:30303`).
+3. Criação do arquivo `permissions_config.toml` com a conta deployer e os nós autorizados.
+4. Geração dos diretórios em `../dist/` (`node1`, `node2`, `node3` e `rpc-node`).
 
-### Etapa 3: Subir o Nó 1 (Validador 1 / Bootnode)
-Inicialize o nó coordenador da rede:
+### Etapa 3: Iniciar Nó 1 (Validador 1 / Bootnode)
+
 ```bash
 ./03-start-node1.sh
 ```
-* **O que acontece:** O contêiner `besu-node1` sobe em segundo plano expondo a porta P2P `30303`. Este nó atuará como o ponto de ancoragem para que os demais nós possam se conectar.
 
----
+Inicia o container `besu-node1` na porta P2P `30303`, servindo como bootnode para os demais nós.
 
-### Etapa 4: Subir o Nó 2 (Validador 2)
-Inicialize o segundo nó validador:
+### Etapa 4: Iniciar Nó 2 (Validador 2)
+
 ```bash
 ./04-start-node2.sh
 ```
-* **O que acontece:** O contêiner `besu-node2` inicia na porta `30304` e conecta-se automaticamente ao Nó 1 através do bootnode configurado.
 
----
+Inicia o container `besu-node2` na porta `30304`, conectando-se automaticamente ao Nó 1.
 
-### Etapa 5: Subir o Nó 3 (Validador 3) — Ativação do Quorum QBFT
-Inicialize o terceiro nó validador:
+### Etapa 5: Iniciar Nó 3 (Validador 3) — Ativação do Quorum QBFT
+
 ```bash
 ./05-start-node3.sh
 ```
-> [!IMPORTANT]
-> **Quorum QBFT Atingido:**
-> Para tolerar $F$ nós bizantinos (falhas), o QBFT requer pelo menos $3F + 1$ nós, e uma decisão exige a maioria qualificada de pelo menos $2F + 1$ assinaturas. Com 3 nós ativos ($N=3, F=0$), a presença dos 3 validadores é a condição necessária e suficiente para iniciar a produção contínua de blocos a cada 2 segundos!
 
----
+> **Quorum QBFT:** o consenso QBFT requer maioria qualificada de pelo menos `2F + 1` assinaturas dentre os validadores configurados. Com os 3 validadores ativos, a produção de blocos inicia automaticamente a cada 2 segundos.
 
-### Etapa 6: Subir o Nó 4 (Gateway RPC / Consultas e DApps)
-Inicialize o nó gateway da rede:
+### Etapa 6: Iniciar Nó 4 (Nó RPC)
+
 ```bash
 ./06-start-rpcnode.sh
 ```
-* **O que acontece:** O contêiner `besu-rpcnode` sobe na porta `30306` (P2P), conecta-se aos 3 validadores e expõe a interface JSON-RPC HTTP na porta padrão **`8545`** com CORS habilitado (`*`) e suporte a WebSockets na porta **`8645`**.
 
----
+Inicia o container `besu-rpcnode` na porta P2P `30306`, sincroniza a cadeia e expõe JSON-RPC HTTP em `127.0.0.1:8545` e WebSockets em `127.0.0.1:8645`.
 
-### Etapa 7: Diagnóstico Consolidado da Rede
-Verifique o estado de saúde de todos os nós:
+### Etapa 7: Diagnóstico Consolidado
+
 ```bash
 ./07-check-network.sh
 ```
-* **Saída esperada:**
-  - Status `healthy` em todos os 4 contêineres Docker.
-  - `Peers Conectados : 3 (0x3)` no nó RPC.
-  - `Bloco Atual` incrementando a cada 2 segundos.
-  - Array com os 3 endereços dos validadores no consenso QBFT.
 
----
+Resultados esperados:
+* Status `healthy` nos 4 containers.
+* `Peers Conectados: 3 (0x3)` no nó RPC.
+* Altura de bloco incrementando a cada 2 segundos.
+* Lista com os 3 endereços validadores retornada pelo método QBFT.
 
-### Etapa 8: Parada e Limpeza dos Nós
-Para encerrar todos os nós em execução:
+### Etapa 8: Parada e Limpeza
+
+Para encerrar todos os nós:
+
 ```bash
 ./08-stop-network.sh
 ```
 
-Se desejar apagar o banco de dados e recriar o histórico da blockchain do zero:
+Para apagar os dados locais e reiniciar a blockchain do bloco gênese:
+
 ```bash
 rm -rf ../dist/*/data/DATABASE ../dist/*/data/caches
 ```
 
 ---
 
-## 3. Comandos Equivalentes por Diretório (`dist/`)
+## 3. Operação Individual por Nó (`dist/`)
 
-Cada pasta gerada em `dist/` é autônoma e possui seus próprios scripts:
+Cada diretório gerado em `besu/dist/` pode ser operado de forma independente:
 
 ```bash
-# Subir nó individual
+# Iniciar nó individual
 cd ../dist/node1 && ./run.sh
 
 # Diagnóstico de nó individual
@@ -129,6 +121,6 @@ cd ../dist/node1 && ./check.sh
 # Parar nó individual
 cd ../dist/node1 && ./stop.sh
 
-# Visualizar logs em tempo real
+# Acompanhar logs em tempo real
 cd ../dist/node1 && docker compose logs -f
 ```
