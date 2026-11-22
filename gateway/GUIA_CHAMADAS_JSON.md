@@ -62,8 +62,8 @@ Verifica a disponibilidade do Gateway e o estado de sincronização do nó Besu.
     "syncing": false
   },
   "contracts": {
-    "wydenCoin": "0xa50a51c09a5c451C52BB714527E1974b686D8e77",
-    "redemptionManager": "0x9a3DBCa554e9f6b9257aAa24010DA8377C57c17e"
+    "wydenCoin": "0xdB6371a89E3C840a14DE470Dd0247cC7459Fa2A2",
+    "redemptionManager": "0x6023FF0A8203ea32E737819B301D1672Dd2ECBE0"
   },
   "timestamp": "2026-11-17T17:50:00.000Z"
 }

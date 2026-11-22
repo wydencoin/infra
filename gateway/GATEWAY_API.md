@@ -48,8 +48,8 @@ cp .env.example .env
 | `BESU_RPC_URL` | Sim | Endpoint JSON-RPC do nó Hyperledger Besu | `http://127.0.0.1:8545` |
 | `API_KEY` | Sim | Chave secreta para autenticação dos clientes | `<SUA_CHAVE_SECRETA>` |
 | `ADMIN_PRIVATE_KEY` | Escrita | Chave privada com roles administrativas on-chain (opcional em modo somente leitura) | `0x<CHAVE_PRIVADA>` |
-| `WYDENCOIN_ADDRESS` | Sim | Endereço do contrato ERC-20 `WydenCoin` | `0xa50a51c09a5c451C52BB714527E1974b686D8e77` |
-| `REDEMPTION_MANAGER_ADDRESS` | Sim | Endereço do contrato `RedemptionManager` | `0x9a3DBCa554e9f6b9257aAa24010DA8377C57c17e` |
+| `WYDENCOIN_ADDRESS` | Sim | Endereço do contrato ERC-20 `WydenCoin` | `0xdB6371a89E3C840a14DE470Dd0247cC7459Fa2A2` |
+| `REDEMPTION_MANAGER_ADDRESS` | Sim | Endereço do contrato `RedemptionManager` | `0x6023FF0A8203ea32E737819B301D1672Dd2ECBE0` |
 
 ---
 
