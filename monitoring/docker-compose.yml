@@ -1,0 +1,60 @@
+# ==============================================================================
+# WydenCoin Blockchain & Gateway Monitoring Stack
+# ==============================================================================
+# Componentes:
+#   - Prometheus (v2.54.1): Coleta telemetria do Besu (9545), Gateway (8546) e Host (9100)
+#   - Grafana (v11.2.0): Painel com Dashboards pré-configurados (Besu + Gateway)
+#   - Node Exporter (v1.8.2): Métricas do SO (CPU, RAM, Disco) da VM 4
+# ==============================================================================
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: wydencoin-prometheus
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.listen-address=127.0.0.1:9090"
+      - "--web.enable-lifecycle"
+
+  grafana:
+    image: grafana/grafana-oss:11.2.0
+    container_name: wydencoin-grafana
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-wyden2026besu}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_HTTP_PORT=3000
+      - GF_SERVER_ROOT_URL=http://wydencoin-rpc.duckdns.org:3000
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: wydencoin-node-exporter
+    restart: unless-stopped
+    network_mode: host
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--web.listen-address=127.0.0.1:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+
+volumes:
+  prometheus-data:
+  grafana-data:
