@@ -412,8 +412,9 @@ curl -X POST http://wydencoin-rpc.duckdns.org:8546/api/v1/rpc \
 
 ### 3.11. `GET /api/v1/saldo/:aluno/lotes`
 
-Retorna o saldo válido, o total expirável pendente de queima e a lista detalhada de lotes ativos da carteira ordenados pela data de expiração mais próxima (FEFO).
+Retorna o saldo válido, o total expirável pendente de queima e a lista detalhada de lotes ativos da carteira ordenados pela data de expiração mais próxima (FEFO — *First-Expired, First-Out*).
 
+* **O que é um lote:** cada recebimento de moedas cria um lote identificado por `valor`, `recebidoEm` e `expiraEm` (calculado como `recebidoEm + periodoExpiracao` vigente naquele momento). O lote representa o **momento do recebimento** (e sua data de validade), e não o motivo específico; múltiplas recompensas recebidas pelo mesmo aluno no mesmo bloco/transação em lote são agrupadas no mesmo lote por compartilharem exatamente a mesma data de vencimento.
 * **Autenticação:** `X-API-KEY`.
 
 **Resposta (`200 OK`):**
@@ -445,19 +446,46 @@ curl -X GET http://wydencoin-rpc.duckdns.org:8546/api/v1/saldo/0xFE3B557E8Fb62b8
 
 ---
 
-### 3.12. `GET /api/v1/config/expiracao` e `PUT /api/v1/config/expiracao`
+### 3.12. `GET /api/v1/config/expiracao`
 
-Consulta ou altera o prazo de expiração aplicado às **novas emissões** de WydenCoin. A alteração exige assinatura por carteira detentora da role `DIRECTOR_ROLE` (por padrão a chave configurada no Gateway ou uma `directorPrivateKey` opcional enviada no payload). Informe `0` para desativar a expiração em novas emissões.
+Consulta o prazo de expiração vigente no contrato `WydenCoin` aplicado às novas emissões.
+
+* **Autenticação:** `X-API-KEY`.
+* **Body:** Nenhum.
+
+**Resposta (`200 OK`):**
+```json
+{
+  "success": true,
+  "periodoSegundos": 31536000,
+  "periodoDias": 365,
+  "ativo": true
+}
+```
+
+**Exemplo cURL:**
+```bash
+curl -X GET http://wydencoin-rpc.duckdns.org:8546/api/v1/config/expiracao \
+  -H "X-API-KEY: $API_KEY"
+```
+
+---
+
+### 3.13. `PUT /api/v1/config/expiracao`
+
+Altera o prazo de expiração aplicado exclusivamente às **novas emissões** de WydenCoin (lotes já recebidos mantêm sua data original de vencimento). Exige assinatura por carteira detentora da role `DIRECTOR_ROLE` (por padrão a carteira configurada no Gateway ou uma `directorPrivateKey` opcional enviada no payload). Informe `0` para desativar a expiração em novas emissões.
 
 * **Autenticação:** `X-API-KEY`.
 
-**Payload de Atualização (`PUT`):**
+**Payload de Requisição:**
 ```json
 {
   "dias": 180
 }
 ```
-*(Também aceita `"segundos": 15552000` e opcionalmente `"directorPrivateKey": "0x<CHAVE_PRIVADA_DIRETOR>"`.)*
+* `dias` *(number, opcional)*: prazo em dias inteiros (`>= 0`).
+* `segundos` *(number, opcional)*: alternativa a `dias`, prazo exato em segundos (`>= 0`).
+* `directorPrivateKey` *(string, opcional)*: chave privada de uma carteira com `DIRECTOR_ROLE` caso não deseje assinar com a carteira padrão do Gateway.
 
 **Resposta (`200 OK`):**
 ```json
@@ -481,13 +509,17 @@ curl -X PUT http://wydencoin-rpc.duckdns.org:8546/api/v1/config/expiracao \
 
 ---
 
-### 3.13. `POST /api/v1/expiracao/executar`
+### 3.14. `POST /api/v1/expiracao/executar`
 
-Executa a queima on-chain (`_burn`) dos lotes vencidos para um aluno ou lista de alunos, atualizando `totalSupply` e emitindo o evento `TokensExpirados`. Adequado para rotinas agendadas (cron).
+Executa a queima on-chain (`_burn`) dos lotes vencidos para um aluno ou uma lista de alunos, reduzindo o `totalSupply` da rede e emitindo o evento `TokensExpirados`.
 
+* **Modelo de execução (como a expiração ocorre na blockchain):** contratos inteligentes EVM não possuem agendador interno automático. Por isso, o `WydenCoin` opera em modelo híbrido:
+  1. **Validação imediata na leitura (`GET /api/v1/saldo/:aluno`):** o contrato já desconta lotes vencidos em tempo real ao consultar o saldo — moedas vencidas nunca podem ser gastas, mesmo antes da queima on-chain.
+  2. **Queima automática na movimentação:** na próxima vez que a carteira receber moedas (`mint`) ou realizar um resgate, o contrato queima automaticamente os lotes vencidos daquela conta antes de processar a operação.
+  3. **Queima periódica via cron (`POST /api/v1/expiracao/executar`):** opcionalmente, uma rotina agendada (ex.: diária ou mensal) no backend pode chamar este endpoint passando as carteiras ativas para queimar on-chain os saldos vencidos de alunos inativos e manter `totalSupply` e eventos de auditoria atualizados.
 * **Autenticação:** `X-API-KEY`.
 
-**Payload de Requisição:**
+**Payload de Requisição (múltiplos alunos ou aluno único via `"aluno"`):**
 ```json
 {
   "alunos": [
