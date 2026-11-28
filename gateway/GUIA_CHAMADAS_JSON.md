@@ -604,6 +604,7 @@ Todas as falhas retornam um objeto JSON padronizado:
 | `400 Bad Request` | Parâmetro ausente ou malformado | `{"success": false, "error": "Endereco de aluno invalido: 0x123"}` |
 | `401 Unauthorized` | Cabeçalho `X-API-KEY` ou `Bearer` ausente/inválido | `{"success": false, "error": "Acesso nao autorizado. Header X-API-KEY ou Bearer token invalido."}` |
 | `404 Not Found` | Rota inexistente | `{"success": false, "error": "Rota nao encontrada: POST /api/v1/inexistente"}` |
+| `429 Too Many Requests` | Limite de taxa (`RATE_LIMIT_MAX` / `RATE_LIMIT_WRITE_MAX`) excedido | `{"success": false, "error": "Limite de requisicoes excedido. Tente novamente em instantes."}` |
 | `500 Internal Error` | Reversão de contrato ou indisponibilidade do Besu | `{"success": false, "error": "execution reverted: Saldo insuficiente"}` |
 
 ---

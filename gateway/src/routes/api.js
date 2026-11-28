@@ -1,10 +1,13 @@
 const express = require("express");
 const blockchain = require("../services/blockchain");
 const authMiddleware = require("../middleware/auth");
+const { apiRateLimiter, writeRateLimiter } = require("../middleware/rateLimit");
 
 const router = express.Router();
 
-// Aplica autenticacao em todas as rotas sob /api/v1
+// Aplica rate limiting e autenticacao em todas as rotas sob /api/v1
+router.use(apiRateLimiter);
+router.use(writeRateLimiter);
 router.use(authMiddleware);
 
 // --- SALDO E LOTES DE EXPIRACAO ---

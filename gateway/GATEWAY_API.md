@@ -51,6 +51,9 @@ cp .env.example .env
 | `WYDENCOIN_ADDRESS` | Sim | Endereço do contrato ERC-20 `WydenCoin` | `0x<ENDERECO_WYDENCOIN>` |
 | `REDEMPTION_MANAGER_ADDRESS` | Sim | Endereço do contrato `RedemptionManager` | `0x<ENDERECO_REDEMPTION_MANAGER>` |
 | `AUDIT_LOG_DIR` | Não | Diretório persistente para gravar `access.log` (JSON Lines) além do `stdout` | `/var/log/wydencoin/gateway` |
+| `RATE_LIMIT_WINDOW_MS` | Não | Janela de contagem do rate limiter em milissegundos (padrão: `60000`) | `60000` |
+| `RATE_LIMIT_MAX` | Não | Máximo de requisições por IP na janela para `/api/v1/*` (padrão: `120`) | `120` |
+| `RATE_LIMIT_WRITE_MAX` | Não | Máximo de requisições de escrita (`POST`/`PUT`) por IP na janela (padrão: `30`) | `30` |
 
 ---
 

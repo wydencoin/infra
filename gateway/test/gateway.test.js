@@ -19,6 +19,9 @@ process.env.PORT = String(TEST_GATEWAY_PORT);
 process.env.WYDENCOIN_ADDRESS = TEST_WC_CONTRACT;
 process.env.REDEMPTION_MANAGER_ADDRESS = TEST_RM_CONTRACT;
 process.env.AUDIT_LOG_DIR = TEMP_LOG_DIR;
+process.env.RATE_LIMIT_WINDOW_MS = "60000";
+process.env.RATE_LIMIT_MAX = "15";
+process.env.RATE_LIMIT_WRITE_MAX = "10";
 
 const app = require("../src/server");
 
@@ -251,5 +254,21 @@ describe("Wydencoin RPC Gateway Test Suite", () => {
     assert.equal(lastEntry.path, "/health");
     assert.equal(lastEntry.status, 200);
     assert.ok(typeof lastEntry.ip === "string");
+  });
+
+  test("rateLimit deve bloquear com 429 Too Many Requests ao exceder RATE_LIMIT_MAX", async () => {
+    let blockedResponse = null;
+    for (let i = 0; i < 20; i++) {
+      const res = await request(`/api/v1/saldo/${TEST_WALLET}`, {
+        headers: { "X-API-KEY": "test-token-123" }
+      });
+      if (res.status === 429) {
+        blockedResponse = res;
+        break;
+      }
+    }
+    assert.ok(blockedResponse, "Esperava resposta 429 ao exceder RATE_LIMIT_MAX");
+    assert.equal(blockedResponse.body.success, false);
+    assert.match(blockedResponse.body.error, /Limite de requisicoes excedido/);
   });
 });

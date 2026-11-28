@@ -7,5 +7,8 @@ module.exports = {
   adminPrivateKey: process.env.ADMIN_PRIVATE_KEY || "",
   wydenCoinAddress: process.env.WYDENCOIN_ADDRESS || "",
   redemptionManagerAddress: process.env.REDEMPTION_MANAGER_ADDRESS || "",
-  auditLogDir: process.env.AUDIT_LOG_DIR || ""
+  auditLogDir: process.env.AUDIT_LOG_DIR || "",
+  rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || "60000", 10),
+  rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || "120", 10),
+  rateLimitWriteMax: parseInt(process.env.RATE_LIMIT_WRITE_MAX || "30", 10)
 };
