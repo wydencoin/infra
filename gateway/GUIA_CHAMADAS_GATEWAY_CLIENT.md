@@ -20,7 +20,7 @@ O cliente lê por padrão duas variáveis de ambiente, que também podem ser inf
 
 | Variável de Ambiente | Descrição | Padrão |
 | :--- | :--- | :--- |
-| `BLOCKCHAIN_GATEWAY_URL` | URL base da Gateway API | `http://wydencoin-rpc.duckdns.org:8546` |
+| `BLOCKCHAIN_GATEWAY_URL` | URL base da Gateway API (obrigatória via `.env`) | *(vazio — obrigatório)* |
 | `BLOCKCHAIN_GATEWAY_TOKEN` | Chave secreta enviada no cabeçalho `X-API-KEY` | *(vazio — obrigatório para rotas autenticadas)* |
 
 ### Importação em um Projeto Node.js
@@ -46,7 +46,10 @@ O arquivo possui uma rotina demonstrativa executada apenas quando chamado direta
 
 ```bash
 cd gateway
-BLOCKCHAIN_GATEWAY_TOKEN="<SUA_API_KEY>" node gateway_client.js
+BLOCKCHAIN_GATEWAY_URL="http://<HOST_DO_GATEWAY>:8546" \
+BLOCKCHAIN_GATEWAY_TOKEN="<SUA_API_KEY>" \
+TEST_WALLET_ADDRESS="0x<ENDERECO_DE_TESTE>" \
+node gateway_client.js
 ```
 
 O script verifica `/health`, consulta o saldo de uma carteira de exemplo, emite moedas de teste e imprime o hash da transação e o bloco minerado.
@@ -65,6 +68,9 @@ Todos os métodos retornam uma `Promise` resolvida com o objeto JSON de resposta
 | `getPoliticaExpiracao()` | — | `{ success, periodoSegundos, periodoDias, ativo }` |
 | `alterarPeriodoExpiracao(opcoes)` | `{ dias?, segundos?, directorPrivateKey? }` | `{ success, periodoSegundos, periodoDias, ativo, txHash }` |
 | `executarExpiracao(alunos)` | `string \| string[]` | `{ success, totalContasVerificadas, totalQueimado, detalhes, txHash }` |
+| `getStatusEmergencia()` | — | `{ success, contrato, pausado }` |
+| `pausarContrato(pauserPrivateKey?)` | `string?` | `{ success, contrato, pausado: true, txHash, blockNumber }` |
+| `retomarContrato(pauserPrivateKey?)` | `string?` | `{ success, contrato, pausado: false, txHash, blockNumber }` |
 | `emitirRecompensa(aluno, valor, motivo)` | `string, number, string?` | `{ success, txHash, blockNumber, aluno, valor, motivo }` |
 | `emitirLoteRecompensas(itens)` | `Array<{ aluno, valor, motivo }>` | `{ success, totalItens, txHash, blockNumber }` |
 | `solicitarResgate(key, beneficioId, valor, horas)` | `string, number, number, number?` | `{ success, idResgate, beneficioId, valor, expiraEm, txHash, blockNumber }` |
@@ -90,7 +96,7 @@ console.log("Peers:", saude.network.peers);
 ### 4.2. Consulta de Saldo (`getSaldo`)
 
 ```javascript
-const carteiraAluno = "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73";
+const carteiraAluno = "0x1111111111111111111111111111111111111111";
 const resposta = await client.getSaldo(carteiraAluno);
 console.log(`Saldo: ${resposta.saldo} ${resposta.unidade}`);
 ```
@@ -101,7 +107,7 @@ Códigos de motivo suportados pelo contrato: `SIA_15D`, `PRES_15D`, `SIMULADO`, 
 
 ```javascript
 const tx = await client.emitirRecompensa(
-  "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73",
+  "0x1111111111111111111111111111111111111111",
   30,
   "SIMULADO"
 );
@@ -142,7 +148,7 @@ await client.confirmarUsoVoucher(resgate.idResgate);
 
 ```javascript
 // Consultar lotes ativos e datas de vencimento de um aluno
-const detalhes = await client.getLotesSaldo("0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73");
+const detalhes = await client.getLotesSaldo("0x1111111111111111111111111111111111111111");
 console.log("Saldo válido:", detalhes.saldoValido, "Expirável:", detalhes.saldoExpiravel);
 console.log("Lotes ativos:", detalhes.lotes);
 
@@ -153,7 +159,7 @@ await client.alterarPeriodoExpiracao({ dias: 180 });
 
 // Executar queima on-chain de lotes vencidos (rotina cron)
 const purga = await client.executarExpiracao([
-  "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73"
+  "0x1111111111111111111111111111111111111111"
 ]);
 console.log("Total queimado:", purga.totalQueimado);
 ```

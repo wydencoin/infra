@@ -70,31 +70,36 @@ Os dashboards são carregados automaticamente na inicialização do Grafana a pa
 
 ## 4. Implantação e Operação
 
-Todos os comandos abaixo assumem execução a partir do diretório `monitoring/` na raiz do repositório `infra`.
+Todos os comandos abaixo assumem execução a partir do diretório `monitoring/` na raiz do repositório `infra`. Toda configuração de hosts, IPs de validadores e credenciais é fornecida exclusivamente via `.env` (ignorado pelo Git).
+
+```bash
+cd monitoring
+cp .env.example .env
+chmod 600 .env
+# Preencha GRAFANA_ADMIN_PASSWORD, REMOTE_HOST e (opcionalmente) VALIDATOR_1_IP..3_IP
+```
 
 ### Execução Local (Ambiente de Testes)
 
 ```bash
-cd monitoring
 ./deploy-monitoring.sh --local
 ```
 
-### Implantação Remota (VM 4)
+### Implantação Remota (VM RPC)
 
 ```bash
-cd monitoring
-./deploy-monitoring.sh --remote <host-ou-ip-da-vm4>
+./deploy-monitoring.sh --remote <HOST_OU_IP_DA_VM>
 ```
+
+O script gera automaticamente `prometheus/prometheus.yml` a partir de `prometheus/prometheus.yml.template` usando as variáveis do `.env` e inicia os containers.
 
 ### Acesso ao Grafana
 
-As credenciais iniciais do Grafana são definidas nas variáveis de ambiente do serviço `grafana` em [`docker-compose.yml`](docker-compose.yml) (`GF_SECURITY_ADMIN_USER` e `GF_SECURITY_ADMIN_PASSWORD`). Em produção, recomenda-se alterar a senha no primeiro login ou sobrescrevê-la via ambiente.
+As credenciais iniciais do Grafana são definidas em `monitoring/.env` (`GRAFANA_ADMIN_USER` e `GRAFANA_ADMIN_PASSWORD`).
 
-* **Acesso direto (requer porta `3000/TCP` liberada no firewall/Security List):**
-  `http://<host-da-vm4>:3000`
-* **Acesso via túnel SSH (recomendado sem exposição pública da porta `3000`):**
+* **Acesso via VPN ou túnel SSH (recomendado):**
   ```bash
-  ssh -L 3000:127.0.0.1:3000 <usuario>@<host-da-vm4>
+  ssh -L 3000:127.0.0.1:3000 <usuario>@<HOST_OU_IP_DA_VM>
   ```
   Após abrir o túnel, acesse `http://localhost:3000` no navegador.
 

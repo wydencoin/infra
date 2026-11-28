@@ -3,16 +3,19 @@ const cors = require("cors");
 const helmet = require("helmet");
 const config = require("./config");
 const { metricsMiddleware } = require("./middleware/metrics");
+const auditLogger = require("./middleware/auditLogger");
 const healthRouter = require("./routes/health");
 const metricsRouter = require("./routes/metrics");
 const apiRouter = require("./routes/api");
 
 const app = express();
 
+app.set("trust proxy", 1);
 app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
 app.use(metricsMiddleware);
+app.use(auditLogger);
 
 // Rotas
 app.use("/health", healthRouter);
@@ -42,6 +45,7 @@ if (require.main === module) {
     console.log(`[+] Wydencoin RPC Gateway ativo na porta ${config.port}`);
     console.log(`[+] Besu RPC Target: ${config.besuRpcUrl}`);
     console.log(`[+] Autenticacao por API_KEY: ${config.apiKey ? "HABILITADA" : "DESABILITADA"}`);
+    console.log(`[+] Audit Log Persistente: ${config.auditLogDir || "somente stdout"}`);
   });
 
   const shutdown = () => {

@@ -14,6 +14,9 @@ const WYDENCOIN_ABI = [
   "function lotesAtivos(address conta) view returns (tuple(uint128 valor, uint64 recebidoEm, uint64 expiraEm)[])",
   "function expirarSaldo(address conta) external returns (uint256)",
   "function expirarSaldoBatch(address[] calldata contas) external returns (uint256)",
+  "function paused() view returns (bool)",
+  "function pause() external",
+  "function unpause() external",
   "event TokensExpirados(address indexed aluno, uint256 valorQueimado)",
   "event PeriodoExpiracaoAtualizado(uint64 periodoAnterior, uint64 novoPeriodo, address indexed atualizadoPor)"
 ];
@@ -35,21 +38,28 @@ const SEGUNDOS_POR_DIA = 86400;
 class BlockchainService {
   constructor() {
     this.provider = new ethers.JsonRpcProvider(config.besuRpcUrl);
+    this.adminWallet = config.adminPrivateKey
+      ? new ethers.Wallet(config.adminPrivateKey, this.provider)
+      : null;
 
-    if (config.adminPrivateKey) {
-      this.adminWallet = new ethers.Wallet(config.adminPrivateKey, this.provider);
-      this.wc = new ethers.Contract(config.wydenCoinAddress, WYDENCOIN_ABI, this.adminWallet);
-      this.rm = new ethers.Contract(config.redemptionManagerAddress, REDEMPTION_MANAGER_ABI, this.adminWallet);
-    } else {
-      this.adminWallet = null;
-      this.wc = new ethers.Contract(config.wydenCoinAddress, WYDENCOIN_ABI, this.provider);
-      this.rm = new ethers.Contract(config.redemptionManagerAddress, REDEMPTION_MANAGER_ABI, this.provider);
-    }
+    const signerOrProvider = this.adminWallet || this.provider;
+    this.wc = config.wydenCoinAddress
+      ? new ethers.Contract(config.wydenCoinAddress, WYDENCOIN_ABI, signerOrProvider)
+      : null;
+    this.rm = config.redemptionManagerAddress
+      ? new ethers.Contract(config.redemptionManagerAddress, REDEMPTION_MANAGER_ABI, signerOrProvider)
+      : null;
   }
 
   _checkAdminWallet() {
     if (!this.adminWallet) {
       throw new Error("ADMIN_PRIVATE_KEY nao configurada no servidor para assinar transacoes.");
+    }
+  }
+
+  _ensureContractAddress(address, envName) {
+    if (!address || !ethers.isAddress(address)) {
+      throw new Error(`Variavel ${envName} nao configurada ou invalida no .env do Gateway.`);
     }
   }
 
@@ -346,6 +356,39 @@ class BlockchainService {
     return {
       id: Number(id),
       status: "Expirado",
+      txHash: receipt.hash,
+      blockNumber: receipt.blockNumber
+    };
+  }
+
+  async getEmergencyStatus() {
+    this._ensureContractAddress(config.wydenCoinAddress, "WYDENCOIN_ADDRESS");
+    const pausado = Boolean(await this.wc.paused());
+    return {
+      contrato: config.wydenCoinAddress,
+      pausado
+    };
+  }
+
+  async setEmergencyPause(pausar, { pauserPrivateKey } = {}) {
+    this._ensureContractAddress(config.wydenCoinAddress, "WYDENCOIN_ADDRESS");
+    let wcSigner = this.wc;
+
+    if (pauserPrivateKey) {
+      const pauserWallet = new ethers.Wallet(pauserPrivateKey, this.provider);
+      wcSigner = new ethers.Contract(config.wydenCoinAddress, WYDENCOIN_ABI, pauserWallet);
+    } else {
+      this._checkAdminWallet();
+    }
+
+    const tx = pausar
+      ? await wcSigner.pause({ gasLimit: TX_GAS_LIMIT })
+      : await wcSigner.unpause({ gasLimit: TX_GAS_LIMIT });
+    const receipt = await tx.wait();
+
+    return {
+      contrato: config.wydenCoinAddress,
+      pausado: pausar,
       txHash: receipt.hash,
       blockNumber: receipt.blockNumber
     };

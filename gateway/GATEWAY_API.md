@@ -48,8 +48,9 @@ cp .env.example .env
 | `BESU_RPC_URL` | Sim | Endpoint JSON-RPC do nó Hyperledger Besu | `http://127.0.0.1:8545` |
 | `API_KEY` | Sim | Chave secreta para autenticação dos clientes | `<SUA_CHAVE_SECRETA>` |
 | `ADMIN_PRIVATE_KEY` | Escrita | Chave privada com roles administrativas on-chain (opcional em modo somente leitura) | `0x<CHAVE_PRIVADA>` |
-| `WYDENCOIN_ADDRESS` | Sim | Endereço do contrato ERC-20 `WydenCoin` | `0xdB6371a89E3C840a14DE470Dd0247cC7459Fa2A2` |
-| `REDEMPTION_MANAGER_ADDRESS` | Sim | Endereço do contrato `RedemptionManager` | `0x6023FF0A8203ea32E737819B301D1672Dd2ECBE0` |
+| `WYDENCOIN_ADDRESS` | Sim | Endereço do contrato ERC-20 `WydenCoin` | `0x<ENDERECO_WYDENCOIN>` |
+| `REDEMPTION_MANAGER_ADDRESS` | Sim | Endereço do contrato `RedemptionManager` | `0x<ENDERECO_REDEMPTION_MANAGER>` |
+| `AUDIT_LOG_DIR` | Não | Diretório persistente para gravar `access.log` (JSON Lines) além do `stdout` | `/var/log/wydencoin/gateway` |
 
 ---
 
@@ -64,6 +65,9 @@ cp .env.example .env
 | `GET` | `/api/v1/config/expiracao` | `X-API-KEY` | Consulta do prazo vigente de expiração das moedas |
 | `PUT` | `/api/v1/config/expiracao` | `X-API-KEY` | Alteração do prazo de expiração para novas emissões (`DIRECTOR_ROLE`) |
 | `POST` | `/api/v1/expiracao/executar` | `X-API-KEY` | Queima on-chain dos lotes vencidos (individual ou lote cron) |
+| `GET` | `/api/v1/emergencia/status` | `X-API-KEY` | Consulta se o contrato `WydenCoin` está pausado |
+| `POST` | `/api/v1/emergencia/pausar` | `X-API-KEY` | Pausa emissões e movimentações em caso de anomalia (`PAUSER_ROLE`) |
+| `POST` | `/api/v1/emergencia/retomar` | `X-API-KEY` | Retoma operações após contenção (`PAUSER_ROLE`) |
 | `POST` | `/api/v1/recompensas/mint` | `X-API-KEY` | Emissão individual de moedas com motivo |
 | `POST` | `/api/v1/recompensas/mint-batch` | `X-API-KEY` | Emissão atômica em lote |
 | `POST` | `/api/v1/resgates` | `X-API-KEY` | Bloqueio de saldo e emissão de voucher |
@@ -111,15 +115,21 @@ cd gateway
 # Build da imagem
 docker build -t wydencoin-gateway:latest .
 
-# Execução do container
+# Execução do container com logs persistentes no host e rotação
+sudo mkdir -p /var/log/wydencoin/gateway
 docker run -d \
   --name wydencoin-gateway \
   --restart unless-stopped \
   --network host \
+  --log-opt max-size=20m \
+  --log-opt max-file=5 \
+  -v /var/log/wydencoin/gateway:/var/log/wydencoin/gateway \
   --env-file .env \
   wydencoin-gateway:latest
 ```
 
-### Regras de Rede Recomendadas
-* Liberar entrada TCP apenas na porta configurada em `PORT` (padrão `8546/TCP`) nas regras de firewall / Security List.
-* Manter a porta `8545/TCP` (JSON-RPC nativo do Besu) bloqueada para acesso público externo.
+### Regras de Rede e Resposta a Incidentes
+* O acesso às portas do cluster e do Gateway deve ser restrito por **VPN** (ex.: WireGuard ou Tailscale) em conjunto com autenticação via `API_KEY` forte (`openssl rand -hex 32`).
+* Em caso de anomalia ou suspeita de abuso:
+  1. Acione `POST /api/v1/emergencia/pausar` para congelar emissões sem precisar derrubar os nós validadores.
+  2. Caso seja necessário parar os containers, utilize **`docker stop`** (nunca execute `docker rm` nem `rm -rf` antes de copiar `/var/log/wydencoin/` e exportar `docker logs` para preservação de evidências).

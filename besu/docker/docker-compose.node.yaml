@@ -4,10 +4,16 @@ services:
     container_name: ${NODE_NAME:-besu-node}
     restart: unless-stopped
     network_mode: host
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
     volumes:
       - ./data:/opt/besu/data
       - ./genesis.json:/opt/besu/genesis.json
       - ./permissions_config.toml:/opt/besu/permissions_config.toml
+      - ${BESU_LOG_DIR:-./logs}:/var/log/besu
     env_file:
       - .env
     command: ${BESU_ARGS}

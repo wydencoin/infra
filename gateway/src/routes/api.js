@@ -125,6 +125,36 @@ router.post("/resgates/:id/expirar", async (req, res, next) => {
   }
 });
 
+// --- CONTROLE DE EMERGENCIA (ERC20Pausable) ---
+router.get("/emergencia/status", async (req, res, next) => {
+  try {
+    const data = await blockchain.getEmergencyStatus();
+    return res.status(200).json({ success: true, ...data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/emergencia/pausar", async (req, res, next) => {
+  try {
+    const { pauserPrivateKey } = req.body || {};
+    const data = await blockchain.setEmergencyPause(true, { pauserPrivateKey });
+    return res.status(200).json({ success: true, ...data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/emergencia/retomar", async (req, res, next) => {
+  try {
+    const { pauserPrivateKey } = req.body || {};
+    const data = await blockchain.setEmergencyPause(false, { pauserPrivateKey });
+    return res.status(200).json({ success: true, ...data });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // --- PROXY RPC AUTENTICADO ---
 router.post("/rpc", async (req, res, next) => {
   try {

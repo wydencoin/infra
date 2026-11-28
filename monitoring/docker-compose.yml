@@ -1,10 +1,7 @@
 # ==============================================================================
 # WydenCoin Blockchain & Gateway Monitoring Stack
 # ==============================================================================
-# Componentes:
-#   - Prometheus (v2.54.1): Coleta telemetria do Besu (9545), Gateway (8546) e Host (9100)
-#   - Grafana (v11.2.0): Painel com Dashboards pré-configurados (Besu + Gateway)
-#   - Node Exporter (v1.8.2): Métricas do SO (CPU, RAM, Disco) da VM 4
+# Configuracao carregada exclusivamente via arquivo .env (veja .env.example).
 # ==============================================================================
 
 services:
@@ -13,6 +10,11 @@ services:
     container_name: wydencoin-prometheus
     restart: unless-stopped
     network_mode: host
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
@@ -28,17 +30,22 @@ services:
     container_name: wydencoin-grafana
     restart: unless-stopped
     network_mode: host
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-wyden2026besu}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?Defina GRAFANA_ADMIN_PASSWORD no .env}
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_HTTP_PORT=3000
-      - GF_SERVER_ROOT_URL=http://wydencoin-rpc.duckdns.org:3000
+      - GF_SERVER_HTTP_PORT=${GRAFANA_HTTP_PORT:-3000}
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:3000}
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
     depends_on:
       - prometheus
 
@@ -47,6 +54,11 @@ services:
     container_name: wydencoin-node-exporter
     restart: unless-stopped
     network_mode: host
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     command:
       - "--path.procfs=/host/proc"
       - "--path.sysfs=/host/sys"

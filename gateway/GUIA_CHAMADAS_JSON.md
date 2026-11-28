@@ -10,7 +10,7 @@ Compatível com qualquer cliente HTTP: `curl`, Postman, Insomnia, `fetch`, Pytho
 
 ## 1. Configuração Base e Autenticação
 
-* **URL Base:** `http://<host-do-gateway>:8546` (em ambiente de nuvem: `http://wydencoin-rpc.duckdns.org:8546`; em ambiente local via túnel SSH: `http://localhost:8546`).
+* **URL Base:** configurada via variável de ambiente `$GATEWAY_URL` (ex.: `export GATEWAY_URL="http://<HOST_DO_GATEWAY>:8546"` via VPN ou `http://localhost:8546` via túnel SSH).
 * **Cabeçalhos Obrigatórios (rotas `/api/v1/*`):**
   ```http
   Content-Type: application/json
@@ -31,6 +31,9 @@ Compatível com qualquer cliente HTTP: `curl`, Postman, Insomnia, `fetch`, Pytho
 | `GET` | `/api/v1/config/expiracao` | `X-API-KEY` | Consulta do prazo vigente de expiração de moedas |
 | `PUT` | `/api/v1/config/expiracao` | `X-API-KEY` | Altera o prazo de expiração para novas emissões (`DIRECTOR_ROLE`) |
 | `POST` | `/api/v1/expiracao/executar` | `X-API-KEY` | Executa queima on-chain de lotes expirados (individual ou lote) |
+| `GET` | `/api/v1/emergencia/status` | `X-API-KEY` | Consulta se o contrato está pausado |
+| `POST` | `/api/v1/emergencia/pausar` | `X-API-KEY` | Congela emissões e movimentações (`PAUSER_ROLE`) |
+| `POST` | `/api/v1/emergencia/retomar` | `X-API-KEY` | Retoma operações normais (`PAUSER_ROLE`) |
 | `POST` | `/api/v1/recompensas/mint` | `X-API-KEY` | Emissão de moedas para 1 aluno |
 | `POST` | `/api/v1/recompensas/mint-batch` | `X-API-KEY` | Emissão atômica em lote |
 | `POST` | `/api/v1/resgates` | `X-API-KEY` | Criação de resgate / voucher sob custódia |
@@ -62,8 +65,8 @@ Verifica a disponibilidade do Gateway e o estado de sincronização do nó Besu.
     "syncing": false
   },
   "contracts": {
-    "wydenCoin": "0xdB6371a89E3C840a14DE470Dd0247cC7459Fa2A2",
-    "redemptionManager": "0x6023FF0A8203ea32E737819B301D1672Dd2ECBE0"
+    "wydenCoin": "0x<ENDERECO_WYDENCOIN>",
+    "redemptionManager": "0x<ENDERECO_REDEMPTION_MANAGER>"
   },
   "timestamp": "2026-11-17T17:50:00.000Z"
 }
@@ -71,7 +74,7 @@ Verifica a disponibilidade do Gateway e o estado de sincronização do nó Besu.
 
 **Exemplo cURL:**
 ```bash
-curl -X GET http://wydencoin-rpc.duckdns.org:8546/health
+curl -X GET $GATEWAY_URL/health
 ```
 
 ---
@@ -87,7 +90,7 @@ Retorna o saldo atual de WydenCoins da carteira informada no parâmetro de rota 
 ```json
 {
   "success": true,
-  "aluno": "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73",
+  "aluno": "0x1111111111111111111111111111111111111111",
   "saldo": 70,
   "unidade": "WC"
 }
@@ -95,7 +98,7 @@ Retorna o saldo atual de WydenCoins da carteira informada no parâmetro de rota 
 
 **Exemplo cURL:**
 ```bash
-curl -X GET http://wydencoin-rpc.duckdns.org:8546/api/v1/saldo/0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73 \
+curl -X GET $GATEWAY_URL/api/v1/saldo/0x1111111111111111111111111111111111111111 \
   -H "X-API-KEY: $API_KEY"
 ```
 
@@ -110,7 +113,7 @@ Emite unidades inteiras de WydenCoin para a carteira de um aluno, registrando o 
 **Payload de Requisição:**
 ```json
 {
-  "aluno": "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73",
+  "aluno": "0x1111111111111111111111111111111111111111",
   "valor": 10,
   "motivo": "SIA_15D"
 }
@@ -126,7 +129,7 @@ Emite unidades inteiras de WydenCoin para a carteira de um aluno, registrando o 
   "success": true,
   "txHash": "0x285263135888b78ee8f6946079850d2f790c58716da5c13fcdc202bb7b27bd93",
   "blockNumber": 165576,
-  "aluno": "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73",
+  "aluno": "0x1111111111111111111111111111111111111111",
   "valor": 10,
   "motivo": "SIA_15D"
 }
@@ -134,11 +137,11 @@ Emite unidades inteiras de WydenCoin para a carteira de um aluno, registrando o 
 
 **Exemplo cURL:**
 ```bash
-curl -X POST http://wydencoin-rpc.duckdns.org:8546/api/v1/recompensas/mint \
+curl -X POST $GATEWAY_URL/api/v1/recompensas/mint \
   -H "Content-Type: application/json" \
   -H "X-API-KEY: $API_KEY" \
   -d '{
-    "aluno": "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73",
+    "aluno": "0x1111111111111111111111111111111111111111",
     "valor": 10,
     "motivo": "SIA_15D"
   }'
@@ -157,7 +160,7 @@ Emite moedas para múltiplos alunos em uma única transação atômica. Indicado
 {
   "itens": [
     {
-      "aluno": "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73",
+      "aluno": "0x1111111111111111111111111111111111111111",
       "valor": 10,
       "motivo": "SIA_15D"
     },
@@ -187,12 +190,12 @@ Emite moedas para múltiplos alunos em uma única transação atômica. Indicado
 
 **Exemplo cURL:**
 ```bash
-curl -X POST http://wydencoin-rpc.duckdns.org:8546/api/v1/recompensas/mint-batch \
+curl -X POST $GATEWAY_URL/api/v1/recompensas/mint-batch \
   -H "Content-Type: application/json" \
   -H "X-API-KEY: $API_KEY" \
   -d '{
     "itens": [
-      { "aluno": "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73", "valor": 10, "motivo": "SIA_15D" },
+      { "aluno": "0x1111111111111111111111111111111111111111", "valor": 10, "motivo": "SIA_15D" },
       { "aluno": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8", "valor": 10, "motivo": "PRES_15D" }
     ]
   }'
@@ -236,7 +239,7 @@ Transfere as moedas da carteira do aluno para a custódia do contrato `Redemptio
 
 **Exemplo cURL:**
 ```bash
-curl -X POST http://wydencoin-rpc.duckdns.org:8546/api/v1/resgates \
+curl -X POST $GATEWAY_URL/api/v1/resgates \
   -H "Content-Type: application/json" \
   -H "X-API-KEY: $API_KEY" \
   -d '{
@@ -261,7 +264,7 @@ Consulta os dados e o estado atual de um voucher on-chain.
 {
   "success": true,
   "id": 1,
-  "aluno": "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73",
+  "aluno": "0x1111111111111111111111111111111111111111",
   "beneficioId": 101,
   "valor": 15,
   "expiraEm": 1763481600,
@@ -281,7 +284,7 @@ Tabela de estados (`statusCode` / `status`):
 
 **Exemplo cURL:**
 ```bash
-curl -X GET http://wydencoin-rpc.duckdns.org:8546/api/v1/resgates/1 \
+curl -X GET $GATEWAY_URL/api/v1/resgates/1 \
   -H "X-API-KEY: $API_KEY"
 ```
 
@@ -307,7 +310,7 @@ Confirma a utilização do voucher no estabelecimento parceiro e executa a queim
 
 **Exemplo cURL:**
 ```bash
-curl -X POST http://wydencoin-rpc.duckdns.org:8546/api/v1/resgates/1/confirmar \
+curl -X POST $GATEWAY_URL/api/v1/resgates/1/confirmar \
   -H "X-API-KEY: $API_KEY"
 ```
 
@@ -333,7 +336,7 @@ Cancela um voucher pendente e devolve integralmente as moedas para a carteira do
 
 **Exemplo cURL:**
 ```bash
-curl -X POST http://wydencoin-rpc.duckdns.org:8546/api/v1/resgates/1/cancelar \
+curl -X POST $GATEWAY_URL/api/v1/resgates/1/cancelar \
   -H "X-API-KEY: $API_KEY"
 ```
 
@@ -359,7 +362,7 @@ Processa a expiração de um voucher cujo prazo (`expiraEm`) já foi ultrapassad
 
 **Exemplo cURL:**
 ```bash
-curl -X POST http://wydencoin-rpc.duckdns.org:8546/api/v1/resgates/1/expirar \
+curl -X POST $GATEWAY_URL/api/v1/resgates/1/expirar \
   -H "X-API-KEY: $API_KEY"
 ```
 
@@ -389,7 +392,7 @@ Encaminha chamadas padrão Ethereum JSON-RPC diretamente para o nó Hyperledger 
 
 **Exemplo cURL:**
 ```bash
-curl -X POST http://wydencoin-rpc.duckdns.org:8546/api/v1/rpc \
+curl -X POST $GATEWAY_URL/api/v1/rpc \
   -H "Content-Type: application/json" \
   -H "X-API-KEY: $API_KEY" \
   -d '{
@@ -421,7 +424,7 @@ Retorna o saldo válido, o total expirável pendente de queima e a lista detalha
 ```json
 {
   "success": true,
-  "aluno": "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73",
+  "aluno": "0x1111111111111111111111111111111111111111",
   "saldoValido": 440,
   "saldoExpiravel": 60,
   "unidade": "WC",
@@ -440,7 +443,7 @@ Retorna o saldo válido, o total expirável pendente de queima e a lista detalha
 
 **Exemplo cURL:**
 ```bash
-curl -X GET http://wydencoin-rpc.duckdns.org:8546/api/v1/saldo/0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73/lotes \
+curl -X GET $GATEWAY_URL/api/v1/saldo/0x1111111111111111111111111111111111111111/lotes \
   -H "X-API-KEY: $API_KEY"
 ```
 
@@ -465,7 +468,7 @@ Consulta o prazo de expiração vigente no contrato `WydenCoin` aplicado às nov
 
 **Exemplo cURL:**
 ```bash
-curl -X GET http://wydencoin-rpc.duckdns.org:8546/api/v1/config/expiracao \
+curl -X GET $GATEWAY_URL/api/v1/config/expiracao \
   -H "X-API-KEY: $API_KEY"
 ```
 
@@ -501,7 +504,7 @@ Altera o prazo de expiração aplicado exclusivamente às **novas emissões** de
 
 **Exemplo cURL:**
 ```bash
-curl -X PUT http://wydencoin-rpc.duckdns.org:8546/api/v1/config/expiracao \
+curl -X PUT $GATEWAY_URL/api/v1/config/expiracao \
   -H "Content-Type: application/json" \
   -H "X-API-KEY: $API_KEY" \
   -d '{ "dias": 180 }'
@@ -523,7 +526,7 @@ Executa a queima on-chain (`_burn`) dos lotes vencidos para um aluno ou uma list
 ```json
 {
   "alunos": [
-    "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73",
+    "0x1111111111111111111111111111111111111111",
     "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
   ]
 }
@@ -537,7 +540,7 @@ Executa a queima on-chain (`_burn`) dos lotes vencidos para um aluno ou uma list
   "totalQueimado": 60,
   "detalhes": [
     {
-      "aluno": "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73",
+      "aluno": "0x1111111111111111111111111111111111111111",
       "valorQueimado": 60
     }
   ],
@@ -548,12 +551,39 @@ Executa a queima on-chain (`_burn`) dos lotes vencidos para um aluno ou uma list
 
 **Exemplo cURL:**
 ```bash
-curl -X POST http://wydencoin-rpc.duckdns.org:8546/api/v1/expiracao/executar \
+curl -X POST $GATEWAY_URL/api/v1/expiracao/executar \
   -H "Content-Type: application/json" \
   -H "X-API-KEY: $API_KEY" \
   -d '{
-    "alunos": ["0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73"]
+    "alunos": ["0x1111111111111111111111111111111111111111"]
   }'
+```
+
+---
+
+### 3.15. `GET /api/v1/emergencia/status`, `POST /api/v1/emergencia/pausar` e `POST /api/v1/emergencia/retomar`
+
+Consulta ou altera o estado de pausa de emergência (`ERC20Pausable`) do contrato `WydenCoin`. As ações de escrita exigem assinatura com `PAUSER_ROLE` (carteira padrão do Gateway ou `pauserPrivateKey` opcional no payload).
+
+* **Autenticação:** `X-API-KEY`.
+
+**Exemplo cURL (pausar):**
+```bash
+curl -X POST "$GATEWAY_URL/api/v1/emergencia/pausar" \
+  -H "Content-Type: application/json" \
+  -H "X-API-KEY: $API_KEY" \
+  -d '{}'
+```
+
+**Resposta (`200 OK`):**
+```json
+{
+  "success": true,
+  "contrato": "0x<ENDERECO_WYDENCOIN>",
+  "pausado": true,
+  "txHash": "0xabc123...",
+  "blockNumber": 165620
+}
 ```
 
 ---
@@ -583,14 +613,14 @@ Todas as falhas retornam um objeto JSON padronizado:
 ### JavaScript (`fetch` nativo — Node.js 18+)
 
 ```javascript
-const resposta = await fetch("http://wydencoin-rpc.duckdns.org:8546/api/v1/recompensas/mint", {
+const resposta = await fetch(`${process.env.BLOCKCHAIN_GATEWAY_URL}/api/v1/recompensas/mint`, {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
     "X-API-KEY": process.env.BLOCKCHAIN_GATEWAY_TOKEN
   },
   body: JSON.stringify({
-    aluno: "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73",
+    aluno: "0x1111111111111111111111111111111111111111",
     valor: 10,
     motivo: "SIA_15D"
   })
@@ -606,13 +636,13 @@ console.log("TxHash:", dados.txHash);
 import os
 import requests
 
-url = "http://wydencoin-rpc.duckdns.org:8546/api/v1/recompensas/mint"
+url = f"{os.environ['BLOCKCHAIN_GATEWAY_URL']}/api/v1/recompensas/mint"
 headers = {
     "Content-Type": "application/json",
     "X-API-KEY": os.environ["BLOCKCHAIN_GATEWAY_TOKEN"],
 }
 payload = {
-    "aluno": "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73",
+    "aluno": "0x1111111111111111111111111111111111111111",
     "valor": 10,
     "motivo": "SIA_15D",
 }
@@ -629,7 +659,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 Future<void> emitirMoeda(String apiKey) async {
-  final url = Uri.parse('http://wydencoin-rpc.duckdns.org:8546/api/v1/recompensas/mint');
+  final url = Uri.parse('$gatewayUrl/api/v1/recompensas/mint');
   final response = await http.post(
     url,
     headers: {
@@ -637,7 +667,7 @@ Future<void> emitirMoeda(String apiKey) async {
       'X-API-KEY': apiKey,
     },
     body: jsonEncode({
-      'aluno': '0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73',
+      'aluno': '0x1111111111111111111111111111111111111111',
       'valor': 10,
       'motivo': 'SIA_15D',
     }),

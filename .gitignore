@@ -4,8 +4,13 @@ besu/key
 besu/*.json
 !besu/README.md
 
-# Besu build e dados temporários locais
+# Besu build e dados temporarios locais
 besu/build/
 besu/dist/
 besu/data/
+besu/logs/
 besu/*.tar.gz
+
+# Configuracoes geradas com IPs reais e logs locais
+monitoring/prometheus/prometheus.yml
+gateway/logs/

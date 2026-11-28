@@ -15,7 +15,7 @@
  * ==============================================================================
  */
 
-const GATEWAY_URL = process.env.BLOCKCHAIN_GATEWAY_URL || "http://wydencoin-rpc.duckdns.org:8546";
+const GATEWAY_URL = process.env.BLOCKCHAIN_GATEWAY_URL || "";
 const API_KEY = process.env.BLOCKCHAIN_GATEWAY_TOKEN || "";
 
 /**
@@ -23,11 +23,11 @@ const API_KEY = process.env.BLOCKCHAIN_GATEWAY_TOKEN || "";
  */
 class WydencoinGatewayClient {
   /**
-   * @param {string} baseUrl - URL base do gateway (ex: http://wydencoin-rpc.duckdns.org:8546)
+   * @param {string} baseUrl - URL base do gateway (ex: definida em BLOCKCHAIN_GATEWAY_URL no .env)
    * @param {string} apiKey  - Token secreto de autenticacao do header X-API-KEY
    */
   constructor(baseUrl = GATEWAY_URL, apiKey = API_KEY) {
-    this.baseUrl = baseUrl.replace(/\/$/, "");
+    this.baseUrl = (baseUrl || "").replace(/\/$/, "");
     this.apiKey = apiKey;
   }
 
@@ -36,6 +36,9 @@ class WydencoinGatewayClient {
    * @private
    */
   async _request(endpoint, options = {}) {
+    if (!this.baseUrl) {
+      throw new Error("BLOCKCHAIN_GATEWAY_URL nao configurado. Defina no .env ou passe no construtor.");
+    }
     const url = `${this.baseUrl}${endpoint}`;
     const headers = {
       "Content-Type": "application/json",
@@ -290,6 +293,28 @@ class WydencoinGatewayClient {
       body: { method, params }
     });
   }
+
+  // ============================================================================
+  // 5. CONTROLE DE EMERGENCIA (PAUSA DO CONTRATO)
+  // ============================================================================
+
+  async getStatusEmergencia() {
+    return this._request("/api/v1/emergencia/status");
+  }
+
+  async pausarContrato(pauserPrivateKey) {
+    return this._request("/api/v1/emergencia/pausar", {
+      method: "POST",
+      body: pauserPrivateKey ? { pauserPrivateKey } : {}
+    });
+  }
+
+  async retomarContrato(pauserPrivateKey) {
+    return this._request("/api/v1/emergencia/retomar", {
+      method: "POST",
+      body: pauserPrivateKey ? { pauserPrivateKey } : {}
+    });
+  }
 }
 
 // ==============================================================================
@@ -297,6 +322,14 @@ class WydencoinGatewayClient {
 // ==============================================================================
 
 async function main() {
+  if (!GATEWAY_URL) {
+    throw new Error("Defina BLOCKCHAIN_GATEWAY_URL e BLOCKCHAIN_GATEWAY_TOKEN no ambiente antes de executar.");
+  }
+  const alunoExemplo = process.env.TEST_WALLET_ADDRESS || "";
+  if (!alunoExemplo) {
+    throw new Error("Defina TEST_WALLET_ADDRESS com um endereco 0x valido para o teste demonstrativo.");
+  }
+
   console.log("==================================================================");
   console.log("Iniciando teste de integracao com o Wydencoin RPC Gateway...");
   console.log(`Endpoint: ${GATEWAY_URL}`);
@@ -312,7 +345,6 @@ async function main() {
   console.log("Contrato WC:", saude.contracts.wydenCoin);
 
   // 2. Consulta de Saldo de um Aluno
-  const alunoExemplo = "0xFE3B557E8Fb62b89F4916B721be55cEb828dBd73";
   console.log(`\n-> 2. Testando GET /api/v1/saldo/${alunoExemplo}...`);
   const saldoAntes = await client.getSaldo(alunoExemplo);
   console.log(`Saldo inicial: ${saldoAntes.saldo} ${saldoAntes.unidade}`);
