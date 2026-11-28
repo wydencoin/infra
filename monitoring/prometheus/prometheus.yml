@@ -1,0 +1,51 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  # 1. Nó Hyperledger Besu RPC (VM 4 Local)
+  - job_name: "besu-rpc"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["127.0.0.1:9545"]
+        labels:
+          instance: "vm4-rpc"
+          role: "rpc-gateway"
+          cluster: "wydencoin-qbft"
+
+  # 2. Nós Validadores QBFT (VMs 1, 2 e 3)
+  - job_name: "besu-validators"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["164.152.62.186:9545"]
+        labels:
+          instance: "vm1-bootnode"
+          role: "validator-1"
+          cluster: "wydencoin-qbft"
+      - targets: ["136.248.66.152:9545"]
+        labels:
+          instance: "vm2"
+          role: "validator-2"
+          cluster: "wydencoin-qbft"
+      - targets: ["147.15.113.136:9545"]
+        labels:
+          instance: "vm3"
+          role: "validator-3"
+          cluster: "wydencoin-qbft"
+
+  # 3. Gateway API (Node.js na porta 8546)
+  - job_name: "gateway-api"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["127.0.0.1:8546"]
+        labels:
+          instance: "vm4-gateway"
+          app: "wydencoin-gateway"
+
+  # 4. Métricas de Host / Sistema Operacional (Node Exporter)
+  - job_name: "node-exporter"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["127.0.0.1:9100"]
+        labels:
+          instance: "vm4-host"

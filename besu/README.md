@@ -1,14 +1,14 @@
 # Infraestrutura de Rede Hyperledger Besu (Multi-Node QBFT - 4 VMs)
 
-Módulo de implantação e orquestração da rede privada Ethereum/Besu para o projeto **WydenCoin**, configurado para suporte nativo à execução distribuída em **4 máquinas virtuais (VMs) independentes**.
+Módulo de implantação e orquestração da rede privada Ethereum/Besu do projeto **WydenCoin**, estruturado para execução local em máquina única ou distribuída em **4 máquinas virtuais (VMs) independentes**.
 
 ---
 
-## 🏛️ Visão Geral da Arquitetura (4 VMs)
+## Visão Geral da Arquitetura (4 VMs)
 
-A rede utiliza o algoritmo de consenso bizantino **QBFT (Quorum Byzantine Fault Tolerance)** com tempo de bloco estipulado em **2 segundos**, política de taxa zero (`min-gas-price=0`), pré-financiamento da conta deployer e isolamento entre validadores e gateway de aplicação:
+A rede utiliza o algoritmo de consenso bizantino **QBFT (Quorum Byzantine Fault Tolerance)** com tempo de bloco de **2 segundos**, política de taxa zero (`min-gas-price=0`), conta deployer pré-financiada no bloco gênese e separação entre nós validadores e nó RPC:
 
-```
+```text
                   +-----------------------------------+
                   |          VM 1 (Coordenadora)      |
                   |     Validador 1 / Bootnode QBFT   |
@@ -30,30 +30,31 @@ A rede utiliza o algoritmo de consenso bizantino **QBFT (Quorum Byzantine Fault 
                                     v
                   +-----------------------------------+
                   |               VM 4                |
-                  |       Gateway RPC / Consultas     |
+                  |           Nó RPC / Gateway        |
                   |  HTTP 8545 | WS 8645 | Metrics 9545
                   |     (DApps, Benchmarks, APIs)     |
                   +-----------------------------------+
 ```
 
-Para mais detalhes sobre o desenho da rede, consulte: [arquitetura-multi-node.md](docs/arquitetura-multi-node.md).
+Para detalhes de topologia, papéis e regras de firewall, consulte [docs/arquitetura-multi-node.md](docs/arquitetura-multi-node.md).
 
 ---
 
-## 📚 Guias Passo a Passo com Scripts Modulares (.sh)
+## Guias de Implantação com Scripts Modulares
 
-Inspirados no modelo operacional do projeto **Ilíada (RNP / cenarios-bevel)**, a implantação da rede é desmembrada em etapas granulares com scripts dedicados (`.sh`), permitindo controle e acompanhamento de cada nó:
+A implantação é dividida em etapas granulares com scripts `.sh` independentes para facilitar o aprendizado, a depuração e o controle de cada nó:
 
-* 🖥️ **[lab-single-node/README.md](lab-single-node/README.md)**: Guia passo a passo para implantar os 4 nós em **máquina única** utilizando scripts modulares para requisitos, geração de chaves, inicialização individual de cada nó e diagnóstico consolidado.
-* 🌐 **[lab-multi-node/README.md](lab-multi-node/README.md)**: Guia passo a passo para implantar a rede em **4 VMs distribuídas** com scripts por máquina (VM 1 Coordenadora, envio via SCP, subida dos validadores nas VMs 2 e 3, e gateway RPC na VM 4).
+* **[lab-single-node/README.md](lab-single-node/README.md):** implantação dos 4 nós em **máquina única** (verificação de requisitos, geração de chaves, inicialização individual e diagnóstico consolidado).
+* **[lab-multi-node/README.md](lab-multi-node/README.md):** implantação distribuída em **4 VMs** (VM 1 coordenadora, transferência via SCP, validadores nas VMs 2 e 3, e nó RPC na VM 4).
+* **[docs/steps-multi-node.md](docs/steps-multi-node.md):** referência operacional resumida para manutenção e reset do cluster multi-node.
 
 ---
 
-## 📁 Estrutura de Diretórios
+## Estrutura de Diretórios
 
-```bash
+```text
 besu/
-├── lab-single-node/              # Procedimento passo a passo em máquina única (com scripts .sh modulares)
+├── lab-single-node/                # Laboratório passo a passo em máquina única
 │   ├── 01-install-requirements.sh
 │   ├── 02-generate-network.sh
 │   ├── 03-start-node1.sh
@@ -64,7 +65,7 @@ besu/
 │   ├── 08-stop-network.sh
 │   └── README.md
 │
-├── lab-multi-node/               # Procedimento passo a passo em 4 VMs (com scripts .sh por máquina)
+├── lab-multi-node/                 # Laboratório passo a passo em 4 VMs
 │   ├── 01-install-requirements.sh
 │   ├── 02-setup-vm1-coordinator.sh
 │   ├── 03-transfer-to-vms.sh
@@ -72,38 +73,38 @@ besu/
 │   ├── 05-stop-network.sh
 │   └── README.md
 │
-├── configs/                      # Modelos declarativos e configurações base
-│   ├── genesis_QBFT.json         # Bloco gênese (3 validadores QBFT, 2s block time)
-│   ├── network-topology.yaml.example # Topologia das 4 VMs
-│   └── permissions.template.toml # Modelo de permissões de nós e contas
+├── configs/                        # Modelos declarativos e configurações base
+│   ├── genesis_QBFT.json           # Bloco gênese (3 validadores QBFT, 2s block time)
+│   ├── network-topology.yaml.example
+│   └── permissions.template.toml   # Modelo de permissões de nós e contas
 │
-├── core/                         # Scripts centrais de geração de rede e empacotamento
-│   ├── 01-generate-network.sh    # Cria chaves criptográficas, genesis.json e enodes
-│   └── 02-package-nodes.sh       # Empacota bundles autônomos (.tar.gz) para cada VM
+├── core/                           # Scripts de geração criptográfica e empacotamento
+│   ├── 01-generate-network.sh      # Cria chaves, genesis.json e enodes
+│   └── 02-package-nodes.sh         # Gera pacotes autônomos (.tar.gz) por VM
 │
-├── deploy/                       # Orquestradores de implantação por máquina
-│   ├── setup-coordinator.sh      # Gera a rede e inicia o Nó 1 na VM 1
-│   ├── setup-validator.sh        # Inicializa nós validadores (VM 2 e VM 3)
-│   ├── setup-rpc.sh              # Inicializa o nó Gateway RPC (VM 4)
-│   └── test-single-machine.sh    # Validação automática da rede em máquina única
+├── deploy/                         # Orquestradores de implantação por papel
+│   ├── setup-coordinator.sh        # Gera a rede e inicia o Nó 1 na VM 1
+│   ├── setup-validator.sh          # Inicializa nós validadores (VM 2 e VM 3)
+│   ├── setup-rpc.sh                # Inicializa o nó RPC (VM 4)
+│   └── test-single-machine.sh      # Validação automatizada em máquina única
 │
-├── docker/                       # Artefatos Docker padronizados
-│   ├── Dockerfile                # Imagem Besu baseada em hyperledger/besu:25.5.0
-│   ├── docker-compose.node.yaml  # Template Compose parametrizável via .env
-│   └── node.env.example          # Exemplo de variáveis de ambiente do nó
+├── docker/                         # Artefatos Docker padronizados
+│   ├── Dockerfile                  # Imagem baseada em hyperledger/besu:25.5.0
+│   ├── docker-compose.node.yaml    # Template Compose parametrizado via .env
+│   └── node.env.example            # Exemplo de variáveis de ambiente do nó
 │
-├── docs/                         # Documentação técnica e operacional
-│   ├── arquitetura-multi-node.md # Topologia, portas de firewall e funções
-│   └── steps-multi-node.md       # Guia operacional passo a passo com scripts
+├── docs/                           # Documentação arquitetural e operacional
+│   ├── arquitetura-multi-node.md
+│   └── steps-multi-node.md
 │
-├── scripts/                      # Utilitários de apoio
-│   ├── check-node.sh             # Diagnóstico de saúde, peers e bloco
-│   ├── install-docker.sh         # Instalação automatizada do Docker & Compose
-│   └── stop-node.sh              # Parada e limpeza segura de contêineres
+├── scripts/                        # Utilitários de apoio
+│   ├── check-node.sh               # Diagnóstico de saúde, peers e altura de bloco
+│   ├── install-docker.sh           # Instalação do Docker e Docker Compose
+│   └── stop-node.sh                # Parada e remoção limpa de contêineres
 │
-└── dist/                         # Diretório gerado contendo os pacotes prontos
-    ├── node1/                    # Executável na VM 1
-    ├── node2.tar.gz              # Pacote para VM 2
-    ├── node3.tar.gz              # Pacote para VM 3
-    └── rpc-node.tar.gz           # Pacote para VM 4
+└── dist/                           # Artefatos gerados em tempo de execução (ignorado pelo Git)
+    ├── node1/
+    ├── node2.tar.gz
+    ├── node3.tar.gz
+    └── rpc-node.tar.gz
 ```

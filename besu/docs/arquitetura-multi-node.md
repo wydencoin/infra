@@ -1,12 +1,12 @@
 # Arquitetura da Rede Hyperledger Besu Multi-Node (WydenCoin)
 
-Este documento detalha o desenho de arquitetura de rede distribuída entre **4 máquinas virtuais (VMs)** distintas.
+Este documento detalha a topologia distribuída em **4 máquinas virtuais (VMs)**, os papéis de cada nó e a matriz de conectividade e segurança da rede privada WydenCoin.
 
 ---
 
 ## 1. Topologia da Rede (4 VMs)
 
-A rede é baseada no algoritmo de consenso **QBFT (Quorum Byzantine Fault Tolerance)** com **3 nós validadores** e **1 nó de gateway/RPC** para consultas, API e integração de aplicações externas:
+A rede opera com o algoritmo de consenso **QBFT (Quorum Byzantine Fault Tolerance)** composto por **3 nós validadores** e **1 nó RPC dedicado** para atendimento de APIs, consultas e integrações externas:
 
 ```mermaid
 graph TD
@@ -22,7 +22,7 @@ graph TD
         N3["Nó Validador 3<br/>(P2P: 30303)"]
     end
 
-    subgraph M4["VM 4: Gateway RPC / Consultas (<rpc-ip>)"]
+    subgraph M4["VM 4: Nó RPC e Gateway (<rpc-ip>)"]
         RPC["Nó RPC Membro<br/>(P2P: 30303, RPC: 8545, WS: 8645)"]
     end
 
@@ -36,38 +36,39 @@ graph TD
 
 ---
 
-## 2. Papéis dos Nós (Roles)
+## 2. Papéis dos Nós
 
 ### A. VM 1: Coordenadora / Bootnode (Validador 1)
-* **Papel:** Ponto de ancoragem para descoberta P2P e Validador inicial da rede.
-* **Geração Criptográfica:** É a máquina que executa a geração do bloco gênese (`genesis.json`), chaves dos validadores e allowlists.
-* **Empacotamento:** Cria os pacotes de distribuição (`dist/*.tar.gz`) que serão transferidos para as outras máquinas via `scp`.
-* **Portas Abertas:** `30303` TCP/UDP (P2P Discovery).
+* **Papel:** ponto de ancoragem para descoberta P2P e primeiro validador do comitê QBFT.
+* **Geração Criptográfica:** executa a criação do bloco gênese (`genesis.json`), das chaves dos validadores e das listas de permissão (`permissions_config.toml`).
+* **Empacotamento:** produz os pacotes de distribuição (`dist/*.tar.gz`) enviados às demais VMs via `scp`.
+* **Portas Expostas:** `30303` TCP/UDP (P2P).
 
-### B. VMs 2 e 3: Máquinas Validadoras (Validadores 2 e 3)
-* **Papel:** Participantes do comitê de validação do consenso QBFT.
-* **Execução:** Assinam e propõem blocos a cada 2 segundos.
-* **Segurança:** As portas JSON-RPC externas ficam desabilitadas nesses nós por padrão, protegendo a chave privada do validador contra acessos indevidos.
-* **Portas Abertas:** `30303` TCP/UDP (P2P).
+### B. VMs 2 e 3: Nós Validadores (Validadores 2 e 3)
+* **Papel:** membros do comitê de validação do consenso QBFT.
+* **Execução:** propõem e assinam blocos a cada 2 segundos.
+* **Segurança:** o endpoint JSON-RPC externo permanece desabilitado por padrão, protegendo a superfície dos nós validadores.
+* **Portas Expostas:** `30303` TCP/UDP (P2P).
 
-### C. VM 4: Máquina Gateway / RPC (Consultas e Transações)
-* **Papel:** Ponto de entrada e saída de dados para o mundo externo (APIs backend, MetaMask, ferramentas de teste de carga e benchmark).
-* **Execução:** Não possui chave de validador (não assina blocos, apenas replica o estado da cadeia).
-* **Portas Abertas:**
+### C. VM 4: Nó RPC e Gateway de Aplicação
+* **Papel:** ponto de integração para serviços de aplicação, ferramentas de benchmark e coleta de telemetria.
+* **Execução:** nó membro sem chave de validação (replica o estado da cadeia e encaminha transações ao comitê).
+* **Serviços Associados:** hospeda o [WydenCoin RPC Gateway](../../gateway/GATEWAY_API.md) na porta `8546` e a [stack de monitoramento](../../monitoring/README.md) (Prometheus/Grafana).
+* **Portas Principais:**
   * `30303` TCP/UDP (P2P);
-  * `8545` TCP (JSON-RPC HTTP com CORS aberto `*` e APIs `ETH,NET,WEB3,QBFT,DEBUG,TXPOOL`);
-  * `8645` TCP (WebSockets para escuta de eventos `RewardMinted` e `ResgateCriado`);
-  * `9545` TCP (Métricas Prometheus, opcional).
+  * `8545` TCP (JSON-RPC HTTP restrito ao loopback quando utilizado atrás do RPC Gateway);
+  * `8546` TCP (WydenCoin RPC Gateway autenticado via `X-API-KEY`);
+  * `8645` TCP (WebSockets para assinatura de eventos on-chain);
+  * `9545` TCP (métricas Prometheus em loopback).
 
 ---
 
-## 3. Segurança e Firewall
-
-Para garantir a comunicação entre as máquinas em uma rede corporativa/laboratorial:
+## 3. Matriz de Firewall e Conectividade
 
 | Porta | Protocolo | Origem | Destino | Finalidade |
-|:------|:----------|:-------|:--------|:-----------|
-| `30303` | TCP / UDP | Qualquer nó da rede | Todas as máquinas | Descoberta e sincronização P2P do Besu |
-| `8545` | TCP | Aplicações clientes / Devs | Máquina RPC | Envio de transações e consultas Web3 |
-| `8645` | TCP | Backend / Indexador | Máquina RPC | Assinatura de WebSockets para eventos |
-| `9545` | TCP | Servidor Prometheus | Máquina RPC | Coleta de telemetria |
+| :--- | :--- | :--- | :--- | :--- |
+| `30303` | TCP / UDP | Nós da rede Besu | VMs 1, 2, 3 e 4 | Descoberta e sincronização P2P |
+| `8546` | TCP | Aplicações clientes / Backend | VM 4 | Acesso REST autenticado ao RPC Gateway |
+| `8545` | TCP | Loopback (`127.0.0.1`) | VM 4 | Comunicação local entre Gateway e Besu |
+| `8645` | TCP | Indexador / Serviços internos | VM 4 | Escuta de eventos via WebSockets |
+| `9545` | TCP | Prometheus local | VM 4 (e validadores, opcional) | Coleta de métricas nativas do Besu |
